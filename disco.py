@@ -404,7 +404,7 @@ else:
 # !!   "id": "PrepFolders"
 # !! }}
 #@title 1.2 Prepare Folders
-import subprocess, os, sys, ipykernel
+import os, sys, ipykernel
 
 def gitclone(url, targetdir=None):
     if targetdir:
@@ -478,7 +478,7 @@ else:
 # !! }}
 #@title ### 1.3 Install, import dependencies and set up runtime devices
 
-import pathlib, shutil, os, sys
+import pathlib, shutil, sys
 
 # There are some reports that with a T4 or V100 on Colab, downgrading to a previous version of PyTorch may be necessary.
 # .. but there are also reports that downgrading breaks them!  If you're facing issues, you may want to try uncommenting and running this code.
@@ -503,7 +503,7 @@ USE_ADABINS = True
 if is_colab:
     if not google_drive:
         root_path = f'/content'
-        model_path = '/content/models' 
+        model_path = '/content/models'
 else:
     root_path = os.getcwd()
     model_path = f'{root_path}/models'
@@ -722,10 +722,10 @@ def init_midas_depth_model(midas_model_type="dpt_large", optimize=True):
     )
 
     midas_model.eval()
-    
+
     if optimize==True:
         if DEVICE == torch.device("cuda"):
-            midas_model = midas_model.to(memory_format=torch.channels_last)  
+            midas_model = midas_model.to(memory_format=torch.channels_last)
             midas_model = midas_model.half()
 
     midas_model.to(DEVICE)
@@ -913,7 +913,7 @@ padargs = {}
 
 class MakeCutoutsDango(nn.Module):
     def __init__(self, cut_size,
-                 Overview=4, 
+                 Overview=4,
                  InnerCrop = 0, IC_Size_Pow=0.5, IC_Grey_P = 0.2
                  ):
         super().__init__()
@@ -954,7 +954,7 @@ class MakeCutoutsDango(nn.Module):
               T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
               T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.3),
           ])
-          
+
 
     def forward(self, input):
         cutouts = []
@@ -963,7 +963,7 @@ class MakeCutoutsDango(nn.Module):
         max_size = min(sideX, sideY)
         min_size = min(sideX, sideY, self.cut_size)
         l_size = max(sideX, sideY)
-        output_shape = [1,3,self.cut_size,self.cut_size] 
+        output_shape = [1,3,self.cut_size,self.cut_size]
         output_shape_2 = [1,3,self.cut_size+2,self.cut_size+2]
         pad_input = F.pad(input,((sideY-max_size)//2,(sideY-max_size)//2,(sideX-max_size)//2,(sideX-max_size)//2), **padargs)
         cutout = resize(pad_input, out_shape=output_shape)
@@ -989,7 +989,7 @@ class MakeCutoutsDango(nn.Module):
                 else:
                     TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("cutout_overview0.jpg",quality=99)
 
-                              
+
         if self.InnerCrop >0:
             for i in range(self.InnerCrop):
                 size = int(torch.rand([])**self.IC_Size_Pow * (max_size - min_size) + min_size)
@@ -1012,7 +1012,7 @@ class MakeCutoutsDango(nn.Module):
 def spherical_dist_loss(x, y):
     x = F.normalize(x, dim=-1)
     y = F.normalize(y, dim=-1)
-    return (x - y).norm(dim=-1).div(2).arcsin().pow(2).mul(2)     
+    return (x - y).norm(dim=-1).div(2).arcsin().pow(2).mul(2)
 
 def tv_loss(input):
     """L2 total variation loss, as in Mahendran et al."""
@@ -1078,7 +1078,7 @@ def do_run():
   for frame_num in range(args.start_frame, args.max_frames):
       if stop_on_next_loop:
         break
-      
+
       display.clear_output(wait=True)
 
       # Print Frame progress if animation mode is on
@@ -1087,7 +1087,7 @@ def do_run():
         batchBar.n = frame_num
         batchBar.refresh()
 
-      
+
       # Inits if not video frames
       if args.animation_mode != "Video Input":
         if args.init_image in ['','none', 'None', 'NONE']:
@@ -1109,7 +1109,7 @@ def do_run():
               f'translation_x: {translation_x}',
               f'translation_y: {translation_y}',
           )
-        
+
         if frame_num > 0:
           seed += 1
           if resume_run and frame_num == start_frame:
@@ -1139,7 +1139,7 @@ def do_run():
 
       if args.animation_mode == "3D":
         if frame_num > 0:
-          seed += 1    
+          seed += 1
           if resume_run and frame_num == start_frame:
             img_filepath = batchFolder+f"/{batch_name}({batchNum})_{start_frame-1:04}.png"
             if turbo_mode and frame_num > turbo_preroll:
@@ -1153,12 +1153,12 @@ def do_run():
           ### Turbo mode - skip some diffusions, use 3d morph for clarity and to save time
           if turbo_mode:
             if frame_num == turbo_preroll: #start tracking oldframe
-              next_step_pil.save('oldFrameScaled.png')#stash for later blending          
+              next_step_pil.save('oldFrameScaled.png')#stash for later blending
             elif frame_num > turbo_preroll:
               #set up 2 warped image sequences, old & new, to blend toward new diff image
               old_frame = do_3d_step('oldFrameScaled.png', frame_num, midas_model, midas_transform)
               old_frame.save('oldFrameScaled.png')
-              if frame_num % int(turbo_steps) != 0: 
+              if frame_num % int(turbo_steps) != 0:
                 print('turbo skip this frame: skipping clip diffusion steps')
                 filename = f'{args.batch_name}({args.batchNum})_{frame_num:04}.png'
                 blend_factor = ((frame_num % int(turbo_steps))+1)/int(turbo_steps)
@@ -1174,7 +1174,7 @@ def do_run():
               else:
                 #if not a skip frame, will run diffusion and need to blend.
                 oldWarpedImg = cv2.imread('prevFrameScaled.png')
-                cv2.imwrite(f'oldFrameScaled.png',oldWarpedImg)#swap in for blending later 
+                cv2.imwrite(f'oldFrameScaled.png',oldWarpedImg)#swap in for blending later
                 print('clip/diff this frame - generate clip diff image')
 
           init_image = 'prevFrameScaled.png'
@@ -1187,47 +1187,47 @@ def do_run():
         if not video_init_seed_continuity:
           seed += 1
         if video_init_flow_warp:
-          if frame_num == 0: 
+          if frame_num == 0:
             skip_steps = args.video_init_skip_steps
             init_image = f'{videoFramesFolder}/{frame_num+1:04}.jpg'
-          if frame_num > 0: 
+          if frame_num > 0:
             prev = PIL.Image.open(batchFolder+f"/{batch_name}({batchNum})_{frame_num-1:04}.png")
-            
+
             frame1_path = f'{videoFramesFolder}/{frame_num:04}.jpg'
             frame2 = PIL.Image.open(f'{videoFramesFolder}/{frame_num+1:04}.jpg')
             flo_path = f"/{flo_folder}/{frame1_path.split('/')[-1]}.npy"
-            
+
             init_image = 'warped.png'
             print(video_init_flow_blend)
             weights_path = None
             if video_init_check_consistency:
                 # TBD
                 pass
- 
+
             warp(prev, frame2, flo_path, blend=video_init_flow_blend, weights_path=weights_path).save(init_image)
-            
+
         else:
           init_image = f'{videoFramesFolder}/{frame_num+1:04}.jpg'
 
 
       loss_values = []
-  
+
       if seed is not None:
           np.random.seed(seed)
           random.seed(seed)
           torch.manual_seed(seed)
           torch.cuda.manual_seed_all(seed)
           torch.backends.cudnn.deterministic = True
-  
+
       target_embeds, weights = [], []
-      
+
       if args.prompts_series is not None and frame_num >= len(args.prompts_series):
         frame_prompt = args.prompts_series[-1]
       elif args.prompts_series is not None:
         frame_prompt = args.prompts_series[frame_num]
       else:
         frame_prompt = []
-      
+
       print(args.image_prompts_series)
       if args.image_prompts_series is not None and frame_num >= len(args.image_prompts_series):
         image_prompt = args.image_prompts_series[-1]
@@ -1243,11 +1243,11 @@ def do_run():
             cutn = 16
             model_stat = {"clip_model":None,"target_embeds":[],"make_cutouts":None,"weights":[]}
             model_stat["clip_model"] = clip_model
-            
+
             for prompt in frame_prompt:
                 txt, weight = parse_prompt(prompt)
                 txt = clip_model.encode_text(clip.tokenize(prompt).to(device)).float()
-                
+
                 if args.fuzzy_prompt:
                     for i in range(25):
                         model_stat["target_embeds"].append((txt + torch.randn(txt.shape).cuda() * args.rand_mag).clamp(0,1))
@@ -1255,9 +1255,9 @@ def do_run():
                 else:
                     model_stat["target_embeds"].append(txt)
                     model_stat["weights"].append(weight)
-        
+
             if image_prompt:
-              model_stat["make_cutouts"] = MakeCutouts(clip_model.visual.input_resolution, cutn, skip_augs=skip_augs) 
+              model_stat["make_cutouts"] = MakeCutouts(clip_model.visual.input_resolution, cutn, skip_augs=skip_augs)
               for prompt in image_prompt:
                   path, weight = parse_prompt(prompt)
                   img = Image.open(fetch(path)).convert('RGB')
@@ -1271,20 +1271,20 @@ def do_run():
                   else:
                       model_stat["target_embeds"].append(embed)
                       model_stat["weights"].extend([weight / cutn] * cutn)
-        
+
             model_stat["target_embeds"] = torch.cat(model_stat["target_embeds"])
             model_stat["weights"] = torch.tensor(model_stat["weights"], device=device)
             if model_stat["weights"].sum().abs() < 1e-3:
                 raise RuntimeError('The weights must not sum to 0.')
             model_stat["weights"] /= model_stat["weights"].sum().abs()
             model_stats.append(model_stat)
-  
+
       init = None
       if init_image is not None:
           init = Image.open(fetch(init_image)).convert('RGB')
           init = init.resize((args.side_x, args.side_y), Image.LANCZOS)
           init = TF.to_tensor(init).to(device).unsqueeze(0).mul(2).sub(1)
-      
+
       if args.perlin_init:
           if args.perlin_mode == 'color':
               init = create_perlin_noise([1.5**-i*0.5 for i in range(12)], 1, 1, False)
@@ -1298,9 +1298,9 @@ def do_run():
           # init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device)
           init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device).unsqueeze(0).mul(2).sub(1)
           del init2
-  
+
       cur_t = None
-  
+
       def cond_fn(x, t, y=None):
           with torch.enable_grad():
               x_is_NaN = False
@@ -1330,7 +1330,7 @@ def do_run():
                         input_resolution=224
 
                     cuts = MakeCutoutsDango(input_resolution,
-                            Overview= args.cut_overview[1000-t_int], 
+                            Overview= args.cut_overview[1000-t_int],
                             InnerCrop = args.cut_innercut[1000-t_int], IC_Size_Pow=args.cut_ic_pow, IC_Grey_P = args.cut_icgray_p[1000-t_int]
                             )
                     clip_in = normalize(cuts(x_in.add(1).div(2)))
@@ -1359,9 +1359,9 @@ def do_run():
                 grad = torch.zeros_like(x)
           if args.clamp_grad and x_is_NaN == False:
               magnitude = grad.square().mean().sqrt()
-              return grad * magnitude.clamp(max=args.clamp_max) / magnitude  #min=-0.02, min=-clamp_max, 
+              return grad * magnitude.clamp(max=args.clamp_max) / magnitude  #min=-0.02, min=-clamp_max,
           return grad
-  
+
       if args.diffusion_sampling_mode == 'ddim':
           sample_fn = diffusion.ddim_sample_loop_progressive
       else:
@@ -1413,11 +1413,11 @@ def do_run():
                   randomize_class=randomize_class,
                   order=2,
               )
-          
-          
+
+
           # with run_display:
           # display.clear_output(wait=True)
-          for j, sample in enumerate(samples):    
+          for j, sample in enumerate(samples):
             cur_t -= 1
             intermediateStep = False
             if args.steps_per_checkpoint is not None:
@@ -1483,8 +1483,11 @@ def do_run():
 
                         # if frame_num != args.max_frames-1:
                         #   display.clear_output()
-          
+
           plt.plot(np.array(loss_values), 'r')
+          # let user know an image finished rendering
+          play_sound(350, 200)
+
 
 def generate_eye_views(trans_scale,batchFolder,filename,frame_num,midas_model, midas_transform):
    for i in range(2):
@@ -1833,7 +1836,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
         if os.path.exists(model_256_path) and check_model_SHA:
             print('Checking 256 Diffusion File')
             with open(model_256_path,"rb") as f:
-                bytes = f.read() 
+                bytes = f.read()
                 hash = hashlib.sha256(bytes).hexdigest();
             if hash == model_256_SHA:
                 print('256 Model SHA matches')
@@ -1848,7 +1851,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                     download_models(diffusion_model,use_secondary_model,True)
         elif os.path.exists(model_256_path) and not check_model_SHA or model_256_downloaded == True:
             print('256 Model already downloaded, check check_model_SHA if the file is corrupt')
-        else:  
+        else:
             wget(model_256_link, model_path)
             if os.path.exists(model_256_path):
                 model_256_downloaded = True
@@ -1859,7 +1862,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
         if os.path.exists(model_512_path) and check_model_SHA:
             print('Checking 512 Diffusion File')
             with open(model_512_path,"rb") as f:
-                  bytes = f.read() 
+                  bytes = f.read()
                   hash = hashlib.sha256(bytes).hexdigest();
             if hash == model_512_SHA:
                 print('512 Model SHA matches')
@@ -1868,7 +1871,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                 else:
                     print('First URL Failed using FallBack')
                     download_models(diffusion_model,use_secondary_model,True)
-            else:  
+            else:
                 print("512 Model SHA doesn't match, redownloading...")
                 wget(model_512_link, model_path)
                 if os.path.exists(model_512_path):
@@ -1878,7 +1881,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                     download_models(diffusion_model,use_secondary_model,True)
         elif os.path.exists(model_512_path) and not check_model_SHA or model_512_downloaded:
             print('512 Model already downloaded, check check_model_SHA if the file is corrupt')
-        else:  
+        else:
             wget(model_512_link, model_path)
             model_512_downloaded = True
     # Download the secondary diffusion model v2
@@ -1886,12 +1889,12 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
         if os.path.exists(model_secondary_path) and check_model_SHA:
             print('Checking Secondary Diffusion File')
             with open(model_secondary_path,"rb") as f:
-                bytes = f.read() 
+                bytes = f.read()
                 hash = hashlib.sha256(bytes).hexdigest();
             if hash == model_secondary_SHA:
                 print('Secondary Model SHA matches')
                 model_secondary_downloaded = True
-            else:  
+            else:
                 print("Secondary Model SHA doesn't match, redownloading...")
                 wget(model_secondary_link, model_path)
                 if os.path.exists(model_secondary_path):
@@ -1901,7 +1904,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                     download_models(diffusion_model,use_secondary_model,True)
         elif os.path.exists(model_secondary_path) and not check_model_SHA or model_secondary_downloaded:
             print('Secondary Model already downloaded, check check_model_SHA if the file is corrupt')
-        else:  
+        else:
             wget(model_secondary_link, model_path)
             if os.path.exists(model_secondary_path):
                 model_secondary_downloaded = True
@@ -2102,7 +2105,7 @@ if animation_mode == "Video Input":
     vf = f'select=not(mod(n\,{extract_nth_frame}))'
     if os.path.exists(video_init_path):
         subprocess.run(['ffmpeg', '-i', f'{video_init_path}', '-vf', f'{vf}', '-vsync', 'vfr', '-q:v', '2', '-loglevel', 'error', '-stats', f'{videoFramesFolder}/%04d.jpg'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    else: 
+    else:
         print(f'\nWARNING!\n\nVideo not found: {video_init_path}.\nPlease check your video path.\n')
     #!ffmpeg -i {video_init_path} -vf {vf} -vsync vfr -q:v 2 -loglevel error -stats {videoFramesFolder}/%04d.jpg
 
@@ -2171,13 +2174,13 @@ video_init_frames_skip_steps = '70%' #@param ['40%', '50%', '60%', '70%', '80%']
 #======= VR MODE
 #@markdown ---
 #@markdown ####**VR Mode (3D anim only):**
-#@markdown Enables stereo rendering of left/right eye views (supporting Turbo) which use a different (fish-eye) camera projection matrix.   
+#@markdown Enables stereo rendering of left/right eye views (supporting Turbo) which use a different (fish-eye) camera projection matrix.
 #@markdown Note the images you're prompting will work better if they have some inherent wide-angle aspect
 #@markdown The generated images will need to be combined into left/right videos. These can then be stitched into the VR180 format.
 #@markdown Google made the VR180 Creator tool but subsequently stopped supporting it. It's available for download in a few places including https://www.patrickgrunwald.de/vr180-creator-download
 #@markdown The tool is not only good for stitching (videos and photos) but also for adding the correct metadata into existing videos, which is needed for services like YouTube to identify the format correctly.
 #@markdown Watching YouTube VR videos isn't necessarily the easiest depending on your headset. For instance Oculus have a dedicated media studio and store which makes the files easier to access on a Quest https://creator.oculus.com/manage/mediastudio/
-#@markdown 
+#@markdown
 #@markdown The command to get ffmpeg to concat your frames for each eye is in the form: `ffmpeg -framerate 15 -i frame_%4d_l.png l.mp4` (repeat for r)
 
 vr_mode = False #@param {type:"boolean"}
@@ -2205,7 +2208,7 @@ def parse_key_frames(string, prompt_parser=None):
         'framenumber1: (parametervalues1), framenumber2: (parametervalues2), ...'
     prompt_parser: function or None, optional
         If provided, prompt_parser will be applied to each string of parameter values.
-    
+
     Returns
     -------
     dict
@@ -2215,7 +2218,7 @@ def parse_key_frames(string, prompt_parser=None):
     ------
     RuntimeError
         If the input string does not match the expected format.
-    
+
     Examples
     --------
     >>> parse_key_frames("10:(Apple: 1| Orange: 0), 20: (Apple: 0| Orange: 1| Peach: 1)")
@@ -2255,12 +2258,12 @@ def get_inbetweens(key_frames, integer=False):
     integer: Bool, optional
         If True, the values of the output series are converted to integers.
         Otherwise, the values are floats.
-    
+
     Returns
     -------
     pd.Series
         A Series with length max_frames representing the parameter values for each frame.
-    
+
     Examples
     --------
     >>> max_frames = 5
@@ -2285,16 +2288,16 @@ def get_inbetweens(key_frames, integer=False):
     for i, value in key_frames.items():
         key_frame_series[i] = value
     key_frame_series = key_frame_series.astype(float)
-    
+
     interp_method = interp_spline
 
     if interp_method == 'Cubic' and len(key_frames.items()) <=3:
       interp_method = 'Quadratic'
-    
+
     if interp_method == 'Quadratic' and len(key_frames.items()) <= 2:
       interp_method = 'Linear'
-      
-    
+
+
     key_frame_series[0] = key_frame_series[key_frame_series.first_valid_index()]
     key_frame_series[max_frames-1] = key_frame_series[key_frame_series.last_valid_index()]
     # key_frame_series = key_frame_series.interpolate(method=intrp_method,order=1, limit_direction='both')
@@ -2470,7 +2473,7 @@ if animation_mode == 'Video Input':
     sys.path.append(f'{PROJECT_DIR}/RAFT/core')
     os.chdir(f'{PROJECT_DIR}/RAFT/core')
     print(os.getcwd())
-  
+
     print("Renaming RAFT core's utils.utils to raftutils.utils (to avoid a naming conflict with AdaBins)")
     if not os.path.exists(f'{PROJECT_DIR}/RAFT/core/raftutils'):
         os.rename(f'{PROJECT_DIR}/RAFT/core/utils', f'{PROJECT_DIR}/RAFT/core/raftutils')
@@ -2486,39 +2489,39 @@ if animation_mode == 'Video Input':
     from tqdm.notebook import tqdm
     from glob import glob
     import torch
-  
+
     args2 = argparse.Namespace()
     args2.small = False
     args2.mixed_precision = True
-  
-  
+
+
     TAG_CHAR = np.array([202021.25], np.float32)
-  
+
     def writeFlow(filename,uv,v=None):
-        """ 
+        """
         https://github.com/NVIDIA/flownet2-pytorch/blob/master/utils/flow_utils.py
         Copyright 2017 NVIDIA CORPORATION
-  
+
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
         You may obtain a copy of the License at
-  
+
             http://www.apache.org/licenses/LICENSE-2.0
-  
+
         Unless required by applicable law or agreed to in writing, software
         distributed under the License is distributed on an "AS IS" BASIS,
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and
         limitations under the License.
-        
+
         Write optical flow to file.
-        
+
         If v is None, uv is assumed to contain both u and v channels,
         stacked in depth.
         Original code by Deqing Sun, adapted from Daniel Scharstein.
         """
         nBands = 2
-  
+
         if v is None:
             assert(uv.ndim == 3)
             assert(uv.shape[2] == 2)
@@ -2526,7 +2529,7 @@ if animation_mode == 'Video Input':
             v = uv[:,:,1]
         else:
             u = uv
-  
+
         assert(u.shape == v.shape)
         height,width = u.shape
         f = open(filename,'wb')
@@ -2540,19 +2543,19 @@ if animation_mode == 'Video Input':
         tmp[:,np.arange(width)*2 + 1] = v
         tmp.astype(np.float32).tofile(f)
         f.close()
-  
+
     def load_img(img, size):
         img = Image.open(img).convert('RGB').resize(size)
         return torch.from_numpy(np.array(img)).permute(2,0,1).float()[None,...].cuda()
-  
+
     def get_flow(frame1, frame2, model, iters=20):
         padder = InputPadder(frame1.shape)
         frame1, frame2 = padder.pad(frame1, frame2)
         _, flow12 = model(frame1, frame2, iters=iters, test_mode=True)
         flow12 = flow12[0].permute(1, 2, 0).detach().cpu().numpy()
-  
+
         return flow12
-  
+
     def warp_flow(img, flow):
         h, w = flow.shape[:2]
         flow = flow.copy()
@@ -2560,42 +2563,42 @@ if animation_mode == 'Video Input':
         flow[:, :, 1] += np.arange(h)[:, np.newaxis]
         res = cv2.remap(img, flow, None, cv2.INTER_LINEAR)
         return res
-  
+
     def makeEven(_x):
         return _x if (_x % 2 == 0) else _x+1
-  
+
     def fit(img,maxsize=512):
         maxdim = max(*img.size)
         if maxdim>maxsize:
             # if True:
             ratio = maxsize/maxdim
             x,y = img.size
-            size = (makeEven(int(x*ratio)),makeEven(int(y*ratio))) 
+            size = (makeEven(int(x*ratio)),makeEven(int(y*ratio)))
             img = img.resize(size)
         return img
-  
+
     def warp(frame1, frame2, flo_path, blend=0.5, weights_path=None):
         flow21 = np.load(flo_path)
         frame1pil = np.array(frame1.convert('RGB').resize((flow21.shape[1],flow21.shape[0])))
         frame1_warped21 = warp_flow(frame1pil, flow21)
         # frame2pil = frame1pil
         frame2pil = np.array(frame2.convert('RGB').resize((flow21.shape[1],flow21.shape[0])))
-    
+
         if weights_path:
             # TBD
             pass
         else:
             blended_w = frame2pil*(1-blend) + frame1_warped21*(blend)
-  
+
         return  PIL.Image.fromarray(blended_w.astype('uint8'))
-  
+
     in_path = videoFramesFolder
     flo_folder = f'{in_path}/out_flo_fwd'
-  
+
     temp_flo = in_path+'/temp_flo'
     flo_fwd_folder = in_path+'/out_flo_fwd'
     # TBD flow backwards!
-  
+
     os.chdir(PROJECT_DIR)
 
 
@@ -2620,44 +2623,44 @@ if animation_mode == "Video Input":
         flows = glob(flo_folder+'/*.*')
         if (len(flows)>0) and not force_flow_generation:
             print(f'Skipping flow generation:\nFound {len(flows)} existing flow files in current working folder: {flo_folder}.\nIf you wish to generate new flow files, check force_flow_generation and run this cell again.')
-    
+
         if (len(flows)==0) or force_flow_generation:
             frames = sorted(glob(in_path+'/*.*'));
-            if len(frames)<2: 
+            if len(frames)<2:
                 print(f'WARNING!\nCannot create flow maps: Found {len(frames)} frames extracted from your video input.\nPlease check your video path.')
             if len(frames)>=2:
-        
+
                 raft_model = torch.nn.DataParallel(RAFT(args2))
                 raft_model.load_state_dict(torch.load(f'{root_path}/RAFT/models/raft-things.pth'))
                 raft_model = raft_model.module.cuda().eval()
-        
+
                 for f in pathlib.Path(f'{flo_fwd_folder}').glob('*.*'):
                     f.unlink()
-        
+
                 temp_flo = in_path+'/temp_flo'
                 flo_fwd_folder = in_path+'/out_flo_fwd'
-        
+
                 createPath(flo_fwd_folder)
                 createPath(temp_flo)
-        
+
                 # TBD Call out to a consistency checker?
-        
+
                 framecount = 0
                 for frame1, frame2 in tqdm(zip(frames[:-1], frames[1:]), total=len(frames)-1):
-        
+
                     out_flow21_fn = f"{flo_fwd_folder}/{frame1.split('/')[-1]}"
-            
+
                     frame1 = load_img(frame1, width_height)
                     frame2 = load_img(frame2, width_height)
-            
+
                     flow21 = get_flow(frame2, frame1, raft_model)
                     np.save(out_flow21_fn, flow21)
-            
+
                     if video_init_check_consistency:
                         # TBD
                         pass
 
-                del raft_model 
+                del raft_model
                 gc.collect()
 
 # %%
@@ -2677,7 +2680,7 @@ if animation_mode == "Video Input":
 
 intermediate_saves = 0#@param{type: 'raw'}
 intermediates_in_subfolder = True #@param{type: 'boolean'}
-#@markdown Intermediate steps will save a copy at your specified intervals. You can either format it as a single integer or a list of specific steps 
+#@markdown Intermediate steps will save a copy at your specified intervals. You can either format it as a single integer or a list of specific steps
 
 #@markdown A value of `2` will save a copy at 33% and 66%. 0 will save none.
 
@@ -2727,9 +2730,9 @@ rand_mag = 0.05
 
 #@markdown cut_overview and cut_innercut are cumulative for total cutn on any given step. Overview cuts see the entire image and are good for early structure, innercuts are your standard cutn.
 
-cut_overview = "[12]*400+[4]*600" #@param {type: 'string'}       
-cut_innercut ="[4]*400+[12]*600"#@param {type: 'string'}  
-cut_ic_pow = 1#@param {type: 'number'}  
+cut_overview = "[12]*400+[4]*600" #@param {type: 'string'}
+cut_innercut ="[4]*400+[12]*600"#@param {type: 'string'}
+cut_ic_pow = 1#@param {type: 'number'}
 cut_icgray_p = "[0.2]*400+[0]*600"#@param {type: 'string'}
 
 #@markdown ---
@@ -2790,7 +2793,7 @@ model_config.update({
     'diffusion_steps': diffusion_steps,
 })
 
-batch_size = 1 
+batch_size = 1
 
 def move_files(start_num, end_num, old_folder, new_folder):
     for i in range(start_num, end_num):
@@ -2815,7 +2818,7 @@ calc_frames_skip_steps = math.floor(steps * skip_step_ratio)
 
 if animation_mode == 'Video Input':
     frames = sorted(glob(in_path+'/*.*'));
-    if len(frames)==0: 
+    if len(frames)==0:
         sys.exit("ERROR: 0 frames found.\nPlease check your video input path and rerun the video settings cell.")
     flows = glob(flo_folder+'/*.*')
     if (len(flows)==0) and video_init_flow_warp:
@@ -2994,6 +2997,9 @@ try:
     do_run()
 except KeyboardInterrupt:
     pass
+except Exception as e:
+    play_sound(500, 750)
+    print(e)
 finally:
     print('Seed used:', seed)
     gc.collect()
@@ -3020,7 +3026,7 @@ skip_video_for_run_all = False #@param {type: 'boolean'}
 
 if animation_mode == 'Video Input':
     frames = sorted(glob(in_path+'/*.*'));
-    if len(frames)==0: 
+    if len(frames)==0:
         sys.exit("ERROR: 0 frames found.\nPlease check your video input path and rerun the video settings cell.")
     flows = glob(flo_folder+'/*.*')
     if (len(flows)==0) and video_init_flow_warp:
@@ -3072,7 +3078,7 @@ else:
         for i in trange(init_frame, min(len(frames_in), last_frame)):
             frame1_path = frames_in[i-1]
             frame2_path = frames_in[i]
-  
+
             frame1 = PIL.Image.open(frame1_path)
             frame2 = PIL.Image.open(frame2_path)
             frame1_stem = f"{(int(frame1_path.split('/')[-1].split('_')[-1][:-4])+1):04}.jpg"
@@ -3094,10 +3100,10 @@ else:
         for i in trange(1, len(frames_in)):
             frame1_path = frames_in[i-1]
             frame2_path = frames_in[i]
-    
+
             frame1 = PIL.Image.open(frame1_path)
             frame2 = PIL.Image.open(frame2_path)
-          
+
             frame = PIL.Image.fromarray((np.array(frame1)*(1-blend) + np.array(frame2)*(blend)).astype('uint8')).save(batchFolder+f"/blend/{folder}({run})_{i:04}.png")
 
 
@@ -3185,3 +3191,11 @@ else:
 # !!     "version": "3.6.1"
 # !!   }
 # !! }}
+
+
+def play_sound(freq, len):
+    try:
+        import winsound
+        winsound.Beep(freq, len)
+    except:
+        pass
