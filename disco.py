@@ -385,6 +385,7 @@ Setting | Description | Default
 # !! }}
 #@title 1.1 Check GPU Status
 import subprocess
+cuda_device = 0 #@param{type: 'number'} - if multiple GPUs, specify which one to use
 simple_nvidia_smi_display = False#@param {type:"boolean"}
 if simple_nvidia_smi_display:
     #!nvidia-smi
@@ -608,21 +609,15 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # AdaBins stuff
+if not os.path.exists(f'{PROJECT_DIR}/pretrained/AdaBins_nyu.pt'):
+    createPath(f'{PROJECT_DIR}/pretrained')
+    wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", f'{PROJECT_DIR}/pretrained')
+
 if USE_ADABINS:
-    try:
-        from infer import InferenceHelper
-    except:
-        if not os.path.exists("AdaBins"):
-            gitclone("https://github.com/shariqfarooq123/AdaBins.git")
-        if not os.path.exists(f'{PROJECT_DIR}/pretrained/AdaBins_nyu.pt'):
-            createPath(f'{PROJECT_DIR}/pretrained')
-            wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", f'{PROJECT_DIR}/pretrained')
-        sys.path.append(f'{PROJECT_DIR}/AdaBins')
-    from infer import InferenceHelper
     MAX_ADABINS_AREA = 500000
 
 import torch
-DEVICE = torch.device('cuda:0' if (torch.cuda.is_available() and not useCPU) else 'cpu')
+DEVICE = torch.device(cuda_device if (torch.cuda.is_available() and not useCPU) else 'cpu')
 print('Using device:', DEVICE)
 device = DEVICE # At least one of the modules expects this name..
 
@@ -1791,16 +1786,19 @@ diffusion_sampling_mode = 'ddim' #@param ['plms','ddim']
 custom_path = '/content/drive/MyDrive/deep_learning/ddpm/ema_0.9999_058000.pt'#@param {type: 'string'}
 
 #@markdown #####**CLIP settings:**
+# The rough order of speed/mem usage is (smallest/fastest to largest/slowest):
+# For RN50x64 & ViTL14 you may need to use fewer cuts, depending on your VRAM.
+# The following defaults will work on an 8GB card such as 2080S or 3060 Ti with resolution 1024x768
 use_checkpoint = True #@param {type: 'boolean'}
 ViTB32 = True #@param{type:"boolean"}
-ViTB16 = True #@param{type:"boolean"}
-ViTL14 = False #@param{type:"boolean"}
-ViTL14_336px = False #@param{type:"boolean"}
-RN101 = False #@param{type:"boolean"}
 RN50 = True #@param{type:"boolean"}
-RN50x4 = False #@param{type:"boolean"}
+RN101 = True #@param{type:"boolean"}
+ViTB16 = True #@param{type:"boolean"}
+RN50x4 = True #@param{type:"boolean"}
 RN50x16 = False #@param{type:"boolean"}
 RN50x64 = False #@param{type:"boolean"}
+ViTL14 = False #@param{type:"boolean"}
+ViTL14_336px = False #@param{type:"boolean"}
 
 #@markdown If you're having issues with model downloads, check this to compare SHA's:
 check_model_SHA = False #@param{type:"boolean"}
