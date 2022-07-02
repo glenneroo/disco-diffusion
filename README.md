@@ -1,91 +1,34 @@
-# Disco Diffusion
+# Disco Diffusion - Local Python Mode Only!
 
-<a href="https://colab.research.google.com/github/alembics/disco-diffusion/blob/main/Disco_Diffusion.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/></a>
+Forked from Disco Diffusion 5.4.
 
-A frankensteinian amalgamation of notebooks, models and techniques for the generation of AI Art and Animations.
+This version intended for local usage only. Note: Jupyter Notebook stuff removed for clarity, simplification when cleaning up PEP warnings and moving parameters to the top for easy editing, as well as adding more features :)
 
-[to be updated with further info soon]
+To run:
+1. Follow instructions to set up Disco Diffusion for local use with Anaconda.
+2. Open up configured anaconda instance 
+3. Go to folder where you unzipped this.
+4. python -m disco
+5. Wait and pray you have enough VRAM and a good prompt ;)
+6. Profit!
 
-## Contributing
-This project uses a special conversion tool to convert the python files into notebooks for easier development.
+Bonus Features:
+- beeps when a frame is finished or an error occurs
+- GPU selection with 'cuda_device' variable at the top
 
-What this means is you do not have to touch the notebook directly to make changes to it
+Planned features:
+- Front-end GUI
+- add descriptions from cheatsheet to each field
+- allow batch calls (queue)
+- import of settings.txt files
+- easy list of words to cancel out
+- multi-prompts (given prompt, allow (n) parameters to change over time)
+- prompt generator?
 
-the tool being used is called [Colab-Convert](https://github.com/MSFTserver/colab-convert)
-
-- install using `pip install colab-convert`
-- convert .py to .ipynb `colab-convert /path/to/file.py /path/to/file.ipynb`
-- convert .ipynb to .py `colab-convert /path/to/file.ipynb /path/to/file.py`
 
 
-## Changelog
-#### v1 Oct 29th 2021 - Somnai  
-* Initial QoL improvements added, including user friendly UI, settings+prompt saving and improved google drive folder organization.
 
-#### v1.1 Nov 13th 2021 - Somnai
-* Now includes sizing options, intermediate saves and fixed image prompts and perlin inits. unexposed batch option since it doesn't work
-
-#### v2 Update: Nov 22nd 2021 - Somnai
-* Initial addition of Katherine Crowson's Secondary Model Method (https://colab.research.google.com/drive/1mpkrhOjoyzPeSWy2r7T8EYRaU7amYOOi#scrollTo=X5gODNAMEUCR)
-* Fix for incorrectly named settings files
-
-#### v3 Update: Dec 24th 2021 - Somnai
-* Implemented Dango's advanced cutout method
-* Added SLIP models, thanks to NeuralDivergent
-* Fixed issue with NaNs resulting in black images, with massive help and testing from @Softology
-* Perlin now changes properly within batches (not sure where this perlin_regen code came from originally, but thank you)
-
-#### v4 Update: Jan 2022 - Somnai
-* Implemented Diffusion Zooming
-* Added Chigozie keyframing
-* Made a bunch of edits to processes
-
-#### v4.1 Update: Jan 14th 2022 - Somnai
-* Added video input mode
-* Added license that somehow went missing
-* Added improved prompt keyframing, fixed image_prompts and multiple prompts
-* Improved UI
-* Significant under the hood cleanup and improvement
-* Refined defaults for each mode
-* Removed SLIP models for the time being due to import conflicts
-* Added latent-diffusion SuperRes for sharpening
-* Added resume run mode
-
-#### v5 Update: Feb 20th 2022 - gandamu / Adam Letts
-* Added 3D animation mode. Uses weighted combination of AdaBins and MiDaS depth estimation models. Uses pytorch3d for 3D transforms on Colab and/or Linux.
-
-#### v5.1 Update: Mar 30th 2022 - zippy / Chris Allen and gandamu / Adam Letts
-
-* Integrated Turbo+Smooth features from Disco Diffusion Turbo -- just the implementation, without its defaults.
-* Implemented resume of turbo animations in such a way that it's now possible to resume from different batch folders and batch numbers.
-* 3D rotation parameter units are now degrees (rather than radians)
-* Corrected name collision in sampling_mode (now diffusion_sampling_mode for plms/ddim, and sampling_mode for 3D transform sampling)
-* Added video_init_seed_continuity option to make init video animations more continuous
-* Removed pytorch3d from needing to be compiled with a lite version specifically made for Disco Diffusion
-* Remove Super Resolution
-* Remove Slip Models
-* Update for crossplatform support
-
-#### v5.1 Update: Apr 4th 2022 - MSFTserver aka HostsServer
-
-* Removed pytorch3d from needing to be compiled with a lite version specifically made for Disco Diffusion
-* Remove Super Resolution
-* Remove Slip Models
-* Update for crossplatform support
-
-#### v5.2 Update: Apr 10th 2022 - nin_artificial / Tom Mason
-
-* VR Mode
-
-#### v5.3 Update: Jun 10th 2022 - nshepperd, huemin, cut_pow
-
-* Horizontal and Vertical symmetry
-* Addition of ViT-L/14@336px model (requires high VRAM)
-
-#### v5.4 Update: Jun 14th 2022 - devdef / Alex Spirin, integrated into DD main by gandamu / Adam Letts
-
-* Warp mode - for smooth/continuous video input results leveraging optical flow estimation and frame blending
-* Custom models support
+# Following text copied from original Disco Diffusion project
 
 ## Notebook Provenance 
 
