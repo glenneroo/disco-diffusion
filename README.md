@@ -6,7 +6,7 @@ This version is intended for local usage only.
 Note: Jupyter Notebook stuff removed for clarity, ease of cleaning up PEP warnings, moving parameters to the top for easy editing, as well as simplified adding more features (such as connecting with a GUI :)
 
 To run:
-1. Follow online instructions to set up Disco Diffusion for local use with Anaconda.
+1. Follow [online instructions](https://gist.github.com/MSFTserver/a05f637f32302918dd893318a4d9f62b) to set up Disco Diffusion for local use with Anaconda.
 2. Open up configured Anaconda instance.
 3. Go to folder where you unzipped this project.
 4. python -m disco
