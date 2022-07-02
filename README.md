@@ -2,12 +2,13 @@
 
 Forked from Disco Diffusion 5.4.
 
-This version intended for local usage only. Note: Jupyter Notebook stuff removed for clarity, simplification when cleaning up PEP warnings and moving parameters to the top for easy editing, as well as adding more features :)
+This version is intended for local usage only.
+Note: Jupyter Notebook stuff removed for clarity, ease of cleaning up PEP warnings, moving parameters to the top for easy editing, as well as simplified adding more features (such as connecting with a GUI :)
 
 To run:
-1. Follow instructions to set up Disco Diffusion for local use with Anaconda.
-2. Open up configured anaconda instance 
-3. Go to folder where you unzipped this.
+1. Follow online instructions to set up Disco Diffusion for local use with Anaconda.
+2. Open up configured Anaconda instance.
+3. Go to folder where you unzipped this project.
 4. python -m disco
 5. Wait and pray you have enough VRAM and a good prompt ;)
 6. Profit!
@@ -16,7 +17,7 @@ Bonus Features:
 - beeps when a frame is finished or an error occurs
 - GPU selection with 'cuda_device' variable at the top
 
-Planned features:
+Planned Features:
 - Front-end GUI
 - add descriptions from cheatsheet to each field
 - allow batch calls (queue)
@@ -28,7 +29,7 @@ Planned features:
 
 
 
-# Following text copied from original Disco Diffusion project
+### Following text copied from original Disco Diffusion project
 
 ## Notebook Provenance 
 
