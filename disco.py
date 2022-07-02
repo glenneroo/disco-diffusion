@@ -1,16 +1,35 @@
-# %%
-# !! {"metadata":{
-# !!   "id": "view-in-github",
-# !!   "colab_type": "text"
-# !! }}
-"""
-<a href="https://colab.research.google.com/github/alembics/disco-diffusion/blob/main/Disco_Diffusion.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-"""
+import subprocess, pathlib, shutil, sys, os, ipykernel
+from importlib import util as importlibutil
 
-# %%
-# !! {"metadata":{
-# !!   "id": "TitleTop"
-# !! }}
+
+def module_exists(module_name):
+    return importlibutil.find_spec(module_name)
+
+
+def gitclone(url, targetdir=None):
+    if targetdir:
+        res = subprocess.run(['git', 'clone', url, targetdir], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    else:
+        res = subprocess.run(['git', 'clone', url], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    print(res)
+
+
+def pipi(modulestr):
+    res = subprocess.run(['pip', 'install', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    print(res)
+
+
+def pipie(modulestr):
+    res = subprocess.run(['git', 'install', '-e', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    print(res)
+
+
+def wget(url, outputdir):
+    res = subprocess.run(['wget', url, '-P', f'{outputdir}'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    print(res)
+
+
+
 """
 # Disco Diffusion v5.4 - Now with Warp
 
@@ -21,18 +40,6 @@ In case of confusion, Disco is the name of this notebook edit. The diffusion mod
 For issues, join the [Disco Diffusion Discord](https://discord.gg/msEZBy4HxA) or message us on twitter at [@somnai_dreams](https://twitter.com/somnai_dreams) or [@gandamu](https://twitter.com/gandamu_ml)
 """
 
-# %%
-# !! {"metadata":{
-# !!   "id": "CreditsChTop"
-# !! }}
-"""
-### Credits & Changelog ⬇️
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "Credits"
-# !! }}
 """
 #### Credits
 
@@ -67,18 +74,6 @@ Horizontal and Vertical symmetry functionality by nshepperd. Symmetry transforma
 Warp and custom model support by Alex Spirin (https://twitter.com/devdef).
 """
 
-# %%
-# !! {"metadata":{
-# !!   "id": "LicenseTop"
-# !! }}
-"""
-#### License
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "License"
-# !! }}
 """
 Licensed under the MIT License
 
@@ -172,23 +167,254 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# %%
-# !! {"metadata":{
-# !!   "id": "ChangelogTop"
-# !! }}
+
 """
-#### Changelog
+**Diffusion settings (Defaults are heavily outdated)**
+---
+Disco Diffusion is complex, and continually evolving with new features.  The most current documentation on on Disco Diffusion settings can be found in the unofficial guidebook:
+
+[Zippy's Disco Diffusion Cheatsheet](https://docs.google.com/document/d/1l8s7uS2dGqjztYSjPpzlmXLjl5PM3IGkRWI3IiCuK7g/edit)
+
+We also encourage users to join the [Disco Diffusion User Discord](https://discord.gg/XGZrFFCRfN) to learn from the active user community.
+
+This section below is outdated as of v2
+
+Setting | Description | Default
+--- | --- | ---
+**Your vision:**
+`text_prompts` | A description of what you'd like the machine to generate. Think of it like writing the caption below your image on a website. | N/A
+`image_prompts` | Think of these images more as a description of their contents. | N/A
+**Image quality:**
+`clip_guidance_scale`  | Controls how much the image should look like the prompt. | 1000
+`tv_scale` | Controls the smoothness of the final output. | 150
+`range_scale` | Controls how far out of range RGB values are allowed to be. | 150
+`sat_scale` | Controls how much saturation is allowed. From nshepperd's JAX notebook. | 0
+`cutn` | Controls how many crops to take from the image. | 16
+`cutn_batches` | Accumulate CLIP gradient from multiple batches of cuts. | 2
+**Init settings:**
+`init_image` | URL or local path | None
+`init_scale` | This enhances the effect of the init image, a good value is 1000 | 0
+`skip_steps` | Controls the starting point along the diffusion timesteps | 0
+`perlin_init` | Option to start with random perlin noise | False
+`perlin_mode` | ('gray', 'color') | 'mixed'
+**Advanced:**
+`skip_augs` | Controls whether to skip torchvision augmentations | False
+`randomize_class` | Controls whether the imagenet class is randomly changed each iteration | True
+`clip_denoised` | Determines whether CLIP discriminates a noisy or denoised image | False
+`clamp_grad` | Experimental: Using adaptive clip grad in the cond_fn | True
+`seed`  | Choose a random seed and print it at end of run for reproduction | random_seed
+`fuzzy_prompt` | Controls whether to add multiple noisy prompts to the prompt losses | False
+`rand_mag` | Controls the magnitude of the random noise | 0.1
+`eta` | DDIM hyperparameter | 0.5
+`use_vertical_symmetry` | Enforce symmetry over x axis of the image on [`tr_st`*`steps` for `tr_st` in `transformation_steps`] steps of the diffusion process | False
+`use_horizontal_symmetry` | Enforce symmetry over y axis of the image on [`tr_st`*`steps` for `tr_st` in `transformation_steps`] steps of the diffusion process | False
+`transformation_steps` | Steps (expressed in percentages) in which the symmetry is enforced | [0.01]
+`video_init_flow_warp` | Flow warp enabled | True
+`video_init_flow_blend` | 0 - you get raw input, 1 - you get warped diffused previous frame  | 0.999
+`video_init_check_consistency` | TBD check forward-backward flow consistency (uncheck unless there are too many warping artifacts) | False
+
+..
+
+**Model settings**
+---
+
+Setting | Description | Default
+--- | --- | ---
+**Diffusion:**
+`timestep_respacing` | Modify this value to decrease the number of timesteps. | ddim100
+`diffusion_steps` || 1000
+**Diffusion:**
+`clip_models` | Models of CLIP to load. Typically the more, the better but they all come at a hefty VRAM cost. | ViT-B/32, ViT-B/16, RN50x4
 """
 
-# %%
-# !! {"metadata":{
-# !!   "cellView": "form",
-# !!   "id": "Changelog"
-# !! }}
-#@title <- View Changelog
-skip_for_run_all = True #@param {type: 'boolean'}
+"""
+------ set default values here which will be overwritten by values in settings.json ------
+"""
+skip_for_run_all = True
+cuda_device = 0  # if multiple GPUs, specify which one to use
+simple_nvidia_smi_display = False
+useCPU = False
 
-if skip_for_run_all == False:
+""" CLIP Settings
+# The rough order of speed/mem usage is (smallest/fastest to largest/slowest):
+# For RN50x64 & ViTL14 you may need to use fewer cuts, depending on your VRAM.
+# The following defaults will work on an 8GB card such as 2080S or 3060 Ti with resolution 1024x768"""
+use_checkpoint = True
+ViTB32 = True
+RN50 = True
+RN101 = True
+ViTB16 = True
+RN50x4 = True
+RN50x16 = False
+RN50x64 = False
+ViTL14 = False
+ViTL14_336px = False
+check_model_SHA = False  # If you're having issues with model downloads, check this to compare SHA's
+
+# Models Settings
+diffusion_model = "512x512_diffusion_uncond_finetune_008100"  # ["256x256_diffusion_uncond", "512x512_diffusion_uncond_finetune_008100", "custom"]
+use_secondary_model = True
+diffusion_sampling_mode = 'ddim'  # 'plms' or 'ddim'
+custom_path = '/content/drive/MyDrive/deep_learning/ddpm/ema_0.9999_058000.pt'
+
+text_prompts = {
+    0: ["A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, Trending on artstation.", "yellow color scheme"],
+    100: ["This set of prompts start at frame 100","This prompt has weight five:5"],
+}
+image_prompts = {
+    # 0:['ImagePromptsWorkButArentVeryGood.png:2',],
+}
+
+# Basic Settings
+batch_name = 'TimeToDisco'
+steps = 250  #@param [25,50,100,150,250,500,1000]
+width_height = [1280, 768]
+clip_guidance_scale = 5000
+tv_scale = 0
+range_scale = 150
+sat_scale = 0
+cutn_batches = 4
+skip_augs = False
+
+display_rate = 20
+n_batches = 50  # ignored with animation modes
+
+resume_run = False
+run_to_resume = 'latest'
+resume_from_frame = 'latest'
+retain_overwritten_frames = False
+
+# Video Init Basic Settings
+video_init_steps = 100  # e.g. 25,50,100,150,250,500,1000
+video_init_clip_guidance_scale = 1000
+video_init_tv_scale = 0.1
+video_init_range_scale = 150
+video_init_sat_scale = 300
+video_init_cutn_batches = 4
+video_init_skip_steps = 50
+
+# Init Image Settings
+init_image = None
+init_scale = 1000
+skip_steps = 10
+# Make sure you set skip_steps to ~50% of your steps if you want to use an init image.
+
+# Animation Settings
+animation_mode = 'None'  # None, 2D, 3D, Video Input
+# For animation, you probably want to turn `cutn_batches` to 1 to make it quicker.
+
+extract_nth_frame = 2
+persistent_frame_output_in_batch_folder = True
+video_init_seed_continuity = False
+
+# Video Optical Flow Settings
+video_init_flow_warp = True
+# Call optical flow from video frames and warp prev frame with flow
+video_init_flow_blend =  0.999  # 0 - take next frame, 1 - take prev warped frame
+video_init_check_consistency = False  # Insert param here when ready
+video_init_blend_mode = "optical flow"  # None, linear or optical flow
+
+# 2D Animation Settings
+key_frames = True
+max_frames = 10000
+
+interp_spline = 'Linear'  # Do not change, currently will not look good. param ['Linear','Quadratic','Cubic']{type:"string"}
+angle = "0:(0)"
+zoom = "0: (1), 10: (1.05)"  # multiplier of dimensions, 1 is no zoom.
+
+# All rotations are provided in degrees.
+translation_x = "0: (0)"
+translation_y = "0: (0)"
+translation_z = "0: (10.0)"
+rotation_3d_x = "0: (0)"
+rotation_3d_y = "0: (0)"
+rotation_3d_z = "0: (0)"
+midas_depth_model = "dpt_large"
+midas_weight = 0.3
+near_plane = 200
+far_plane = 10000
+fov = 40
+padding_mode = 'border'
+sampling_mode = 'bicubic'
+
+"""TURBO MODE - 3D Animation Mode Only!
+(Starts after frame 10,) skips diffusion steps and just uses depth map to warp images for skipped frames.
+Speeds up rendering by 2x-4x, and may improve image coherence between frames.
+For different settings tuned for Turbo Mode, refer to the original Disco-Turbo Github: https://github.com/zippy731/disco-diffusion-turbo"""
+turbo_mode = False
+turbo_steps = "3"  # "2","3","4","5","6"
+turbo_preroll = 10  # frames
+
+# Coherency Settings
+frames_scale = 1500  # tries to guide the new frame to looking like the old one. A good default is 1500.
+# will blur the previous frame - higher values will flicker less but struggle to add enough new detail to zoom into.
+frames_skip_steps = '60%'  # '40%', '50%', '60%', '70%', '80%'
+
+# Video Init Coherency Settings
+video_init_frames_scale = 15000  # tries to guide the new frame to looking like the old one.
+# will blur the previous frame - higher values will flicker less but struggle to add enough new detail to zoom into.
+video_init_frames_skip_steps = '70%'  #@param ['40%', '50%', '60%', '70%', '80%'] {type: 'string'}
+
+init_frame = 1  # This is the frame where the video will start
+last_frame = 'final_frame'  # You can change i to the number of the last frame you want to generate. It will raise an error if that number of frames does not exist.
+fps = 12  # @param {type:"number"} : init_video fps
+# view_video_in_cell = True
+
+#======= VR MODE (3D anim only):
+# Enables stereo rendering of left/right eye views (supporting Turbo) which use a different (fish-eye) camera projection matrix.
+# Note the images you're prompting will work better if they have some inherent wide-angle aspect
+# The generated images will need to be combined into left/right videos. These can then be stitched into the VR180 format.
+# Google made the VR180 Creator tool but subsequently stopped supporting it. It's available for download in a few places including https://www.patrickgrunwald.de/vr180-creator-download
+# The tool is not only good for stitching (videos and photos) but also for adding the correct metadata into existing videos, which is needed for services like YouTube to identify the format correctly.
+# Watching YouTube VR videos isn't necessarily the easiest depending on your headset. For instance Oculus have a dedicated media studio and store which makes the files easier to access on a Quest https://creator.oculus.com/manage/mediastudio/
+#
+# The command to get ffmpeg to concat your frames for each eye is in the form: `ffmpeg -framerate 15 -i frame_%4d_l.png l.mp4` (repeat for r)
+
+vr_mode = False
+vr_eye_angle = 0.5  # the y-axis rotation of the eyes towards the center
+vr_ipd = 5.0  # interpupillary distance (between the eyes)
+force_flow_generation = False
+
+# Extra Settings - Partial Saves, Advanced Settings, Cutn Scheduling
+intermediate_saves = 0
+intermediates_in_subfolder = True
+# Intermediate steps will save a copy at your specified intervals.
+# You can either format it as a single integer or a list of specific steps
+# A value of `2` will save a copy at 33% and 66%. 0 will save none.
+# A value of `[5, 9, 34, 45]` will save at steps 5, 9, 34, and 45. (Make sure to include the brackets)
+
+# Advanced Settings
+# There are a few extra advanced settings available if you double click this cell.
+# Perlin init will replace your init, so uncheck if using one.
+perlin_init = False
+perlin_mode = 'mixed'  # 'mixed', 'color', 'gray'
+set_seed = 'random_seed'
+eta = 0.8
+clamp_grad = True
+clamp_max = 0.05
+
+### EXTRA ADVANCED SETTINGS:
+randomize_class = True
+clip_denoised = False
+fuzzy_prompt = False
+rand_mag = 0.05
+
+# Cutn Scheduling
+# `[40]*400+[20]*600` = 40 cuts for the first 400 /1000 steps, then 20 for the last 600/1000
+# cut_overview and cut_innercut are cumulative for total cutn on any given step.
+# Overview cuts see the entire image and are good for early structure, innercuts are your standard cutn.
+cut_overview = "[12]*400+[4]*600"
+cut_innercut ="[4]*400+[12]*600"
+cut_ic_pow = 1
+cut_icgray_p = "[0.2]*400+[0]*600"
+
+# Transformation Settings
+use_vertical_symmetry = False
+use_horizontal_symmetry = False
+transformation_percent = [0.09]
+
+
+if not skip_for_run_all:
   print(
       '''
   v1 Update: Oct 29th 2021 - Somnai
@@ -299,94 +525,8 @@ if skip_for_run_all == False:
     '''
   )
 
-# %%
-# !! {"metadata":{
-# !!   "id": "TutorialTop"
-# !! }}
-"""
-# Tutorial
-"""
 
-# %%
-# !! {"metadata":{
-# !!   "id": "DiffusionSet"
-# !! }}
-"""
-**Diffusion settings (Defaults are heavily outdated)**
----
-Disco Diffusion is complex, and continually evolving with new features.  The most current documentation on on Disco Diffusion settings can be found in the unofficial guidebook:
-
-[Zippy's Disco Diffusion Cheatsheet](https://docs.google.com/document/d/1l8s7uS2dGqjztYSjPpzlmXLjl5PM3IGkRWI3IiCuK7g/edit)
-
-We also encourage users to join the [Disco Diffusion User Discord](https://discord.gg/XGZrFFCRfN) to learn from the active user community.
-
-This section below is outdated as of v2
-
-Setting | Description | Default
---- | --- | ---
-**Your vision:**
-`text_prompts` | A description of what you'd like the machine to generate. Think of it like writing the caption below your image on a website. | N/A
-`image_prompts` | Think of these images more as a description of their contents. | N/A
-**Image quality:**
-`clip_guidance_scale`  | Controls how much the image should look like the prompt. | 1000
-`tv_scale` | Controls the smoothness of the final output. | 150
-`range_scale` | Controls how far out of range RGB values are allowed to be. | 150
-`sat_scale` | Controls how much saturation is allowed. From nshepperd's JAX notebook. | 0
-`cutn` | Controls how many crops to take from the image. | 16
-`cutn_batches` | Accumulate CLIP gradient from multiple batches of cuts. | 2
-**Init settings:**
-`init_image` | URL or local path | None
-`init_scale` | This enhances the effect of the init image, a good value is 1000 | 0
-`skip_steps` | Controls the starting point along the diffusion timesteps | 0
-`perlin_init` | Option to start with random perlin noise | False
-`perlin_mode` | ('gray', 'color') | 'mixed'
-**Advanced:**
-`skip_augs` | Controls whether to skip torchvision augmentations | False
-`randomize_class` | Controls whether the imagenet class is randomly changed each iteration | True
-`clip_denoised` | Determines whether CLIP discriminates a noisy or denoised image | False
-`clamp_grad` | Experimental: Using adaptive clip grad in the cond_fn | True
-`seed`  | Choose a random seed and print it at end of run for reproduction | random_seed
-`fuzzy_prompt` | Controls whether to add multiple noisy prompts to the prompt losses | False
-`rand_mag` | Controls the magnitude of the random noise | 0.1
-`eta` | DDIM hyperparameter | 0.5
-`use_vertical_symmetry` | Enforce symmetry over x axis of the image on [`tr_st`*`steps` for `tr_st` in `transformation_steps`] steps of the diffusion process | False
-`use_horizontal_symmetry` | Enforce symmetry over y axis of the image on [`tr_st`*`steps` for `tr_st` in `transformation_steps`] steps of the diffusion process | False
-`transformation_steps` | Steps (expressed in percentages) in which the symmetry is enforced | [0.01]
-`video_init_flow_warp` | Flow warp enabled | True
-`video_init_flow_blend` | 0 - you get raw input, 1 - you get warped diffused previous frame  | 0.999
-`video_init_check_consistency` | TBD check forward-backward flow consistency (uncheck unless there are too many warping artifacts) | False
-
-..
-
-**Model settings**
----
-
-Setting | Description | Default
---- | --- | ---
-**Diffusion:**
-`timestep_respacing` | Modify this value to decrease the number of timesteps. | ddim100
-`diffusion_steps` || 1000
-**Diffusion:**
-`clip_models` | Models of CLIP to load. Typically the more, the better but they all come at a hefty VRAM cost. | ViT-B/32, ViT-B/16, RN50x4
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "SetupTop"
-# !! }}
-"""
-# 1. Set Up
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "cellView": "form",
-# !!   "id": "CheckGPU"
-# !! }}
 #@title 1.1 Check GPU Status
-import subprocess
-cuda_device = 0 #@param{type: 'number'} - if multiple GPUs, specify which one to use
-simple_nvidia_smi_display = False#@param {type:"boolean"}
 if simple_nvidia_smi_display:
     #!nvidia-smi
     nvidiasmi_output = subprocess.run(['nvidia-smi', '-L'], stdout=subprocess.PIPE).stdout.decode('utf-8')
@@ -398,121 +538,40 @@ else:
     nvidiasmi_ecc_note = subprocess.run(['nvidia-smi', '-i', '0', '-e', '0'], stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(nvidiasmi_ecc_note)
 
-# %%
-# !! {"metadata":{
-# !!   "cellView": "form",
-# !!   "id": "PrepFolders"
-# !! }}
-#@title 1.2 Prepare Folders
-import os, sys, ipykernel
 
-def gitclone(url, targetdir=None):
-    if targetdir:
-        res = subprocess.run(['git', 'clone', url, targetdir], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    else:
-        res = subprocess.run(['git', 'clone', url], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
+# Prepare Folders
+video_init_path = "init.mp4"
+google_drive = False
+save_models_to_google_drive = False
+root_path = os.getcwd()
 
-def pipi(modulestr):
-    res = subprocess.run(['pip', 'install', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
 
-def pipie(modulestr):
-    res = subprocess.run(['git', 'install', '-e', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
-
-def wget(url, outputdir):
-    res = subprocess.run(['wget', url, '-P', f'{outputdir}'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
-
-try:
-    from google.colab import drive
-    print("Google Colab detected. Using Google Drive.")
-    is_colab = True
-    #@markdown If you connect your Google Drive, you can save the final image of each run on your drive.
-    google_drive = True #@param {type:"boolean"}
-    #@markdown Click here if you'd like to save the diffusion model checkpoint file to (and/or load from) your Google Drive:
-    save_models_to_google_drive = True #@param {type:"boolean"}
-except:
-    is_colab = False
-    google_drive = False
-    save_models_to_google_drive = False
-    print("Google Colab not detected.")
-
-if is_colab:
-    if google_drive is True:
-        drive.mount('/content/drive')
-        root_path = '/content/drive/MyDrive/AI/Disco_Diffusion'
-    else:
-        root_path = '/content'
-else:
-    root_path = os.getcwd()
-
-import os
-def createPath(filepath):
+def create_path(filepath):
     os.makedirs(filepath, exist_ok=True)
 
-initDirPath = f'{root_path}/init_images'
-createPath(initDirPath)
-outDirPath = f'{root_path}/images_out'
-createPath(outDirPath)
 
-if is_colab:
-    if google_drive and not save_models_to_google_drive or not google_drive:
-        model_path = '/content/models'
-        createPath(model_path)
-    if google_drive and save_models_to_google_drive:
-        model_path = f'{root_path}/models'
-        createPath(model_path)
-else:
-    model_path = f'{root_path}/models'
-    createPath(model_path)
+initDirPath = f'{root_path}/init_images'
+create_path(initDirPath)
+outDirPath = f'{root_path}/images_out'
+create_path(outDirPath)
+model_path = f'{root_path}/models'
+create_path(model_path)
 
 # libraries = f'{root_path}/libraries'
 # createPath(libraries)
 
-# %%
-# !! {"metadata":{
-# !!   "cellView": "form",
-# !!   "id": "InstallDeps"
-# !! }}
-#@title ### 1.3 Install, import dependencies and set up runtime devices
+# Install, import dependencies and set up runtime devices
 
-import pathlib, shutil, sys
-
-# There are some reports that with a T4 or V100 on Colab, downgrading to a previous version of PyTorch may be necessary.
-# .. but there are also reports that downgrading breaks them!  If you're facing issues, you may want to try uncommenting and running this code.
-# nvidiasmi_output = subprocess.run(['nvidia-smi'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-# cards_requiring_downgrade = ["Tesla T4", "V100"]
-# if is_colab:
-#     if any(cardstr in nvidiasmi_output for cardstr in cards_requiring_downgrade):
-#         print("Downgrading pytorch. This can take a couple minutes ...")
-#         downgrade_pytorch_result = subprocess.run(['pip', 'install', 'torch==1.10.2', 'torchvision==0.11.3', '-q'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-#         print("pytorch downgraded.")
-
-#@markdown Check this if you want to use CPU
-useCPU = False #@param {type:"boolean"}
-
-if not is_colab:
-    # If running locally, there's a good chance your env will need this in order to not crash upon np.matmul() or similar operations.
-    os.environ['KMP_DUPLICATE_LIB_OK']='TRUE'
+# there's a good chance your env will need this in order to not crash upon np.matmul() or similar operations.
+os.environ['KMP_DUPLICATE_LIB_OK']='TRUE'
 
 PROJECT_DIR = os.path.abspath(os.getcwd())
 USE_ADABINS = True
-
-if is_colab:
-    if not google_drive:
-        root_path = f'/content'
-        model_path = '/content/models'
-else:
-    root_path = os.getcwd()
-    model_path = f'{root_path}/models'
+root_path = os.getcwd()
+model_path = f'{root_path}/models'
 
 multipip_res = subprocess.run(['pip', 'install', 'lpips', 'datetime', 'timm', 'ftfy', 'einops', 'pytorch-lightning', 'omegaconf'], stdout=subprocess.PIPE).stdout.decode('utf-8')
 print(multipip_res)
-
-if is_colab:
-    subprocess.run(['apt', 'install', 'imagemagick'], stdout=subprocess.PIPE).stdout.decode('utf-8')
 
 try:
     from CLIP import clip
@@ -594,11 +653,8 @@ import random
 from ipywidgets import Output
 import hashlib
 from functools import partial
-if is_colab:
-    os.chdir('/content')
-    from google.colab import files
-else:
-    os.chdir(f'{PROJECT_DIR}')
+
+os.chdir(f'{PROJECT_DIR}')
 from IPython.display import Image as ipyimg
 from numpy import asarray
 from einops import rearrange, repeat
@@ -610,7 +666,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 # AdaBins stuff
 if not os.path.exists(f'{PROJECT_DIR}/pretrained/AdaBins_nyu.pt'):
-    createPath(f'{PROJECT_DIR}/pretrained')
+    create_path(f'{PROJECT_DIR}/pretrained')
     wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", f'{PROJECT_DIR}/pretrained')
 
 if USE_ADABINS:
@@ -745,8 +801,10 @@ def init_midas_depth_model(midas_model_type="dpt_large", optimize=True):
 import py3d_tools as p3dT
 import disco_xform_utils as dxf
 
+
 def interp(t):
     return 3 * t**2 - 2 * t ** 3
+
 
 def perlin(width, height, scale=10, device=None):
     gx, gy = torch.randn(2, width + 1, height + 1, 1, 1, device=device)
@@ -760,6 +818,7 @@ def perlin(width, height, scale=10, device=None):
     dots += wx * (1 - wy) * (gx[:-1, 1:] * xs - gy[:-1, 1:] * (1 - ys))
     dots += (1 - wx) * (1 - wy) * (-gx[1:, 1:] * (1 - xs) - gy[1:, 1:] * (1 - ys))
     return dots.permute(0, 2, 1, 3).contiguous().view(width * scale, height * scale)
+
 
 def perlin_ms(octaves, width, height, grayscale, device=device):
     out_array = [0.5] if grayscale else [0.5, 0.5, 0.5]
@@ -776,6 +835,7 @@ def perlin_ms(octaves, width, height, grayscale, device=device):
             oct_height *= 2
     return torch.cat(out_array)
 
+
 def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True):
     out = perlin_ms(octaves, width, height, grayscale)
     if grayscale:
@@ -788,6 +848,7 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
 
     out = ImageOps.autocontrast(out)
     return out
+
 
 def regen_perlin():
     if perlin_mode == 'color':
@@ -804,6 +865,7 @@ def regen_perlin():
     del init2
     return init.expand(batch_size, -1, -1, -1)
 
+
 def fetch(url_or_path):
     if str(url_or_path).startswith('http://') or str(url_or_path).startswith('https://'):
         r = requests.get(url_or_path)
@@ -814,11 +876,13 @@ def fetch(url_or_path):
         return fd
     return open(url_or_path, 'rb')
 
+
 def read_image_workaround(path):
     """OpenCV reads images as BGR, Pillow saves them as RGB. Work around
     this incompatibility to avoid colour inversions."""
     im_tmp = cv2.imread(path)
     return cv2.cvtColor(im_tmp, cv2.COLOR_BGR2RGB)
+
 
 def parse_prompt(prompt):
     if prompt.startswith('http://') or prompt.startswith('https://'):
@@ -829,13 +893,16 @@ def parse_prompt(prompt):
     vals = vals + ['', '1'][len(vals):]
     return vals[0], float(vals[1])
 
+
 def sinc(x):
     return torch.where(x != 0, torch.sin(math.pi * x) / (math.pi * x), x.new_ones([]))
+
 
 def lanczos(x, a):
     cond = torch.logical_and(-a < x, x < a)
     out = torch.where(cond, sinc(x) * sinc(x/a), x.new_zeros([]))
     return out / out.sum()
+
 
 def ramp(ratio, width):
     n = math.ceil(width / ratio + 1)
@@ -845,6 +912,7 @@ def ramp(ratio, width):
         out[i] = cur
         cur += ratio
     return torch.cat([-out[1:].flip([0]), out])[1:-1]
+
 
 def resample(input, size, align_corners=True):
     n, c, h, w = input.shape
@@ -866,6 +934,7 @@ def resample(input, size, align_corners=True):
 
     input = input.reshape([n, c, h, w])
     return F.interpolate(input, size, mode='bicubic', align_corners=align_corners)
+
 
 class MakeCutouts(nn.Module):
     def __init__(self, cut_size, cutn, skip_augs=False):
@@ -908,8 +977,10 @@ class MakeCutouts(nn.Module):
         cutouts = torch.cat(cutouts, dim=0)
         return cutouts
 
+
 cutout_debug = False
 padargs = {}
+
 
 class MakeCutoutsDango(nn.Module):
     def __init__(self, cut_size,
@@ -955,7 +1026,6 @@ class MakeCutoutsDango(nn.Module):
               T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.3),
           ])
 
-
     def forward(self, input):
         cutouts = []
         gray = T.Grayscale(3)
@@ -984,10 +1054,7 @@ class MakeCutoutsDango(nn.Module):
                     cutouts.append(cutout)
 
             if cutout_debug:
-                if is_colab:
-                    TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("/content/cutout_overview0.jpg",quality=99)
-                else:
-                    TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("cutout_overview0.jpg",quality=99)
+                TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("cutout_overview0.jpg",quality=99)
 
 
         if self.InnerCrop >0:
@@ -1001,18 +1068,17 @@ class MakeCutoutsDango(nn.Module):
                 cutout = resize(cutout, out_shape=output_shape)
                 cutouts.append(cutout)
             if cutout_debug:
-                if is_colab:
-                    TF.to_pil_image(cutouts[-1].clamp(0, 1).squeeze(0)).save("/content/cutout_InnerCrop.jpg",quality=99)
-                else:
-                    TF.to_pil_image(cutouts[-1].clamp(0, 1).squeeze(0)).save("cutout_InnerCrop.jpg",quality=99)
+                TF.to_pil_image(cutouts[-1].clamp(0, 1).squeeze(0)).save("cutout_InnerCrop.jpg",quality=99)
         cutouts = torch.cat(cutouts)
         if skip_augs is not True: cutouts=self.augs(cutouts)
         return cutouts
+
 
 def spherical_dist_loss(x, y):
     x = F.normalize(x, dim=-1)
     y = F.normalize(y, dim=-1)
     return (x - y).norm(dim=-1).div(2).arcsin().pow(2).mul(2)
+
 
 def tv_loss(input):
     """L2 total variation loss, as in Mahendran et al."""
@@ -1027,6 +1093,7 @@ def range_loss(input):
 
 stop_on_next_loop = False  # Make sure GPU memory doesn't get corrupted from cancelling the run mid-way through, allow a full frame to complete
 TRANSLATION_SCALE = 1.0/200.0
+
 
 def do_3d_step(img_filepath, frame_num, midas_model, midas_transform):
   if args.key_frames:
@@ -1058,6 +1125,7 @@ def do_3d_step(img_filepath, frame_num, midas_model, midas_transform):
                                           sampling_mode=args.sampling_mode, midas_weight=args.midas_weight)
   return next_step_pil
 
+
 def symmetry_transformation_fn(x):
     if args.use_horizontal_symmetry:
         [n, c, h, w] = x.size()
@@ -1068,6 +1136,15 @@ def symmetry_transformation_fn(x):
         x = torch.concat((x[:, :, :h//2, :], torch.flip(x[:, :, :h//2, :], [-2])), -2)
         print("vertical symmetry applied")
     return x
+
+
+def play_sound(freq, len):
+    try:
+        import winsound
+        winsound.Beep(freq, len)
+    except:
+        pass
+
 
 def do_run():
   seed = args.seed
@@ -1145,7 +1222,7 @@ def do_run():
             if turbo_mode and frame_num > turbo_preroll:
               shutil.copyfile(img_filepath, 'oldFrameScaled.png')
           else:
-            img_filepath = '/content/prevFrame.png' if is_colab else 'prevFrame.png'
+            img_filepath = 'prevFrame.png'
 
           next_step_pil = do_3d_step(img_filepath, frame_num, midas_model, midas_transform)
           next_step_pil.save('prevFrameScaled.png')
@@ -1769,42 +1846,6 @@ class SecondaryDiffusionImageNet2(nn.Module):
         eps = input * sigmas + v * alphas
         return DiffusionOutput(v, pred, eps)
 
-# %%
-# !! {"metadata":{
-# !!   "id": "DiffClipSetTop"
-# !! }}
-"""
-# 2. Diffusion and CLIP model settings
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "ModelSettings"
-# !! }}
-#@markdown ####**Models Settings:**
-diffusion_model = "512x512_diffusion_uncond_finetune_008100" #@param ["256x256_diffusion_uncond", "512x512_diffusion_uncond_finetune_008100", "custom"]
-use_secondary_model = True #@param {type: 'boolean'}
-diffusion_sampling_mode = 'ddim' #@param ['plms','ddim']
-#@markdown #####**Custom model:**
-custom_path = '/content/drive/MyDrive/deep_learning/ddpm/ema_0.9999_058000.pt'#@param {type: 'string'}
-
-#@markdown #####**CLIP settings:**
-# The rough order of speed/mem usage is (smallest/fastest to largest/slowest):
-# For RN50x64 & ViTL14 you may need to use fewer cuts, depending on your VRAM.
-# The following defaults will work on an 8GB card such as 2080S or 3060 Ti with resolution 1024x768
-use_checkpoint = True #@param {type: 'boolean'}
-ViTB32 = True #@param{type:"boolean"}
-RN50 = True #@param{type:"boolean"}
-RN101 = True #@param{type:"boolean"}
-ViTB16 = True #@param{type:"boolean"}
-RN50x4 = True #@param{type:"boolean"}
-RN50x16 = False #@param{type:"boolean"}
-RN50x64 = False #@param{type:"boolean"}
-ViTL14 = False #@param{type:"boolean"}
-ViTL14_336px = False #@param{type:"boolean"}
-
-#@markdown If you're having issues with model downloads, check this to compare SHA's:
-check_model_SHA = False #@param{type:"boolean"}
 
 def download_models(diffusion_model,use_secondary_model,fallback=False):
     model_256_downloaded = False
@@ -2005,97 +2046,25 @@ if diffusion_model == 'custom':
           'use_scale_shift_norm': False,
       })
 
-# %%
-# !! {"metadata":{
-# !!   "id": "SettingsTop"
-# !! }}
-"""
-# 3. Settings
-"""
 
-# %%
-# !! {"metadata":{
-# !!   "id": "BasicSettings"
-# !! }}
-#@markdown ####**Basic Settings:**
-batch_name = 'TimeToDisco' #@param{type: 'string'}
-steps = 250 #@param [25,50,100,150,250,500,1000]{type: 'raw', allow-input: true}
-width_height = [1280, 768] #@param{type: 'raw'}
-clip_guidance_scale = 5000 #@param{type: 'number'}
-tv_scale = 0#@param{type: 'number'}
-range_scale = 150#@param{type: 'number'}
-sat_scale = 0#@param{type: 'number'}
-cutn_batches = 4#@param{type: 'number'}
-skip_augs = False#@param{type: 'boolean'}
-
-#@markdown ####**Video Init Basic Settings:**
-video_init_steps = 100 #@param [25,50,100,150,250,500,1000]{type: 'raw', allow-input: true}
-video_init_clip_guidance_scale = 1000 #@param{type: 'number'}
-video_init_tv_scale = 0.1#@param{type: 'number'}
-video_init_range_scale = 150#@param{type: 'number'}
-video_init_sat_scale = 300#@param{type: 'number'}
-video_init_cutn_batches = 4#@param{type: 'number'}
-video_init_skip_steps = 50 #@param{type: 'integer'}
-
-#@markdown ---
-
-#@markdown ####**Init Image Settings:**
-init_image = None #@param{type: 'string'}
-init_scale = 1000 #@param{type: 'integer'}
-skip_steps = 10 #@param{type: 'integer'}
-#@markdown *Make sure you set skip_steps to ~50% of your steps if you want to use an init image.*
-
-#Get corrected sizes
+# Get corrected sizes
 side_x = (width_height[0]//64)*64;
 side_y = (width_height[1]//64)*64;
 if side_x != width_height[0] or side_y != width_height[1]:
     print(f'Changing output size to {side_x}x{side_y}. Dimensions must by multiples of 64.')
 
-#Make folder for batch
+# Make folder for batch
 batchFolder = f'{outDirPath}/{batch_name}'
-createPath(batchFolder)
+create_path(batchFolder)
 
 
-# %%
-# !! {"metadata":{
-# !!   "id": "AnimSetTop"
-# !! }}
-"""
-### Animation Settings
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "AnimSettings"
-# !! }}
-#@markdown ####**Animation Mode:**
-animation_mode = 'None' #@param ['None', '2D', '3D', 'Video Input'] {type:'string'}
-#@markdown *For animation, you probably want to turn `cutn_batches` to 1 to make it quicker.*
-
-
-#@markdown ---
-
-#@markdown ####**Video Input Settings:**
-if is_colab:
-    video_init_path = "/content/drive/MyDrive/init.mp4" #@param {type: 'string'}
-else:
-    video_init_path = "init.mp4" #@param {type: 'string'}
-extract_nth_frame = 2 #@param {type: 'number'}
-persistent_frame_output_in_batch_folder = True #@param {type: 'boolean'}
-video_init_seed_continuity = False #@param {type: 'boolean'}
-#@markdown #####**Video Optical Flow Settings:**
-video_init_flow_warp = True #@param {type: 'boolean'}
-# Call optical flow from video frames and warp prev frame with flow
-video_init_flow_blend =  0.999#@param {type: 'number'} #0 - take next frame, 1 - take prev warped frame
-video_init_check_consistency = False #Insert param here when ready
-video_init_blend_mode = "optical flow" #@param ['None', 'linear', 'optical flow']
+# Video Input Settings
 # Call optical flow from video frames and warp prev frame with flow
 if animation_mode == "Video Input":
-    if persistent_frame_output_in_batch_folder or (not is_colab): #suggested by Chris the Wizard#8082 at discord
-        videoFramesFolder = f'{batchFolder}/videoFrames'
-    else:
-        videoFramesFolder = f'/content/videoFrames'
-    createPath(videoFramesFolder)
+    videoFramesFolder = f'{batchFolder}/videoFrames'
+    create_path(videoFramesFolder)
+    max_frames = len(glob(f'{videoFramesFolder}/*.jpg'))
+
     print(f"Exporting Video Frames (1 every {extract_nth_frame})...")
     try:
         for f in pathlib.Path(f'{videoFramesFolder}').glob('*.jpg'):
@@ -2110,86 +2079,15 @@ if animation_mode == "Video Input":
     #!ffmpeg -i {video_init_path} -vf {vf} -vsync vfr -q:v 2 -loglevel error -stats {videoFramesFolder}/%04d.jpg
 
 
-#@markdown ---
-
-#@markdown ####**2D Animation Settings:**
-#@markdown `zoom` is a multiplier of dimensions, 1 is no zoom.
-#@markdown All rotations are provided in degrees.
-
-key_frames = True #@param {type:"boolean"}
-max_frames = 10000#@param {type:"number"}
-
-if animation_mode == "Video Input":
-    max_frames = len(glob(f'{videoFramesFolder}/*.jpg'))
-
-interp_spline = 'Linear' #Do not change, currently will not look good. param ['Linear','Quadratic','Cubic']{type:"string"}
-angle = "0:(0)"#@param {type:"string"}
-zoom = "0: (1), 10: (1.05)"#@param {type:"string"}
-translation_x = "0: (0)"#@param {type:"string"}
-translation_y = "0: (0)"#@param {type:"string"}
-translation_z = "0: (10.0)"#@param {type:"string"}
-rotation_3d_x = "0: (0)"#@param {type:"string"}
-rotation_3d_y = "0: (0)"#@param {type:"string"}
-rotation_3d_z = "0: (0)"#@param {type:"string"}
-midas_depth_model = "dpt_large"#@param {type:"string"}
-midas_weight = 0.3#@param {type:"number"}
-near_plane = 200#@param {type:"number"}
-far_plane = 10000#@param {type:"number"}
-fov = 40#@param {type:"number"}
-padding_mode = 'border'#@param {type:"string"}
-sampling_mode = 'bicubic'#@param {type:"string"}
-
-#======= TURBO MODE
-#@markdown ---
-#@markdown ####**Turbo Mode (3D anim only):**
-#@markdown (Starts after frame 10,) skips diffusion steps and just uses depth map to warp images for skipped frames.
-#@markdown Speeds up rendering by 2x-4x, and may improve image coherence between frames.
-#@markdown For different settings tuned for Turbo Mode, refer to the original Disco-Turbo Github: https://github.com/zippy731/disco-diffusion-turbo
-
-turbo_mode = False #@param {type:"boolean"}
-turbo_steps = "3" #@param ["2","3","4","5","6"] {type:"string"}
-turbo_preroll = 10 # frames
-
-#insist turbo be used only w 3d anim.
+# insist turbo be used only w 3d anim.
 if turbo_mode and animation_mode != '3D':
     print('=====')
     print('Turbo mode only available with 3D animations. Disabling Turbo.')
     print('=====')
     turbo_mode = False
 
-#@markdown ---
 
-#@markdown ####**Coherency Settings:**
-#@markdown `frame_scale` tries to guide the new frame to looking like the old one. A good default is 1500.
-frames_scale = 1500 #@param{type: 'integer'}
-#@markdown `frame_skip_steps` will blur the previous frame - higher values will flicker less but struggle to add enough new detail to zoom into.
-frames_skip_steps = '60%' #@param ['40%', '50%', '60%', '70%', '80%'] {type: 'string'}
-
-#@markdown ####**Video Init Coherency Settings:**
-#@markdown `frame_scale` tries to guide the new frame to looking like the old one. A good default is 1500.
-video_init_frames_scale = 15000 #@param{type: 'integer'}
-#@markdown `frame_skip_steps` will blur the previous frame - higher values will flicker less but struggle to add enough new detail to zoom into.
-video_init_frames_skip_steps = '70%' #@param ['40%', '50%', '60%', '70%', '80%'] {type: 'string'}
-
-#======= VR MODE
-#@markdown ---
-#@markdown ####**VR Mode (3D anim only):**
-#@markdown Enables stereo rendering of left/right eye views (supporting Turbo) which use a different (fish-eye) camera projection matrix.
-#@markdown Note the images you're prompting will work better if they have some inherent wide-angle aspect
-#@markdown The generated images will need to be combined into left/right videos. These can then be stitched into the VR180 format.
-#@markdown Google made the VR180 Creator tool but subsequently stopped supporting it. It's available for download in a few places including https://www.patrickgrunwald.de/vr180-creator-download
-#@markdown The tool is not only good for stitching (videos and photos) but also for adding the correct metadata into existing videos, which is needed for services like YouTube to identify the format correctly.
-#@markdown Watching YouTube VR videos isn't necessarily the easiest depending on your headset. For instance Oculus have a dedicated media studio and store which makes the files easier to access on a Quest https://creator.oculus.com/manage/mediastudio/
-#@markdown
-#@markdown The command to get ffmpeg to concat your frames for each eye is in the form: `ffmpeg -framerate 15 -i frame_%4d_l.png l.mp4` (repeat for r)
-
-vr_mode = False #@param {type:"boolean"}
-#@markdown `vr_eye_angle` is the y-axis rotation of the eyes towards the center
-vr_eye_angle = 0.5 #@param{type:"number"}
-#@markdown interpupillary distance (between the eyes)
-vr_ipd = 5.0 #@param{type:"number"}
-
-#insist VR be used only w 3d anim.
+# insist VR be used only w 3d anim.
 if vr_mode and animation_mode != '3D':
     print('=====')
     print('VR mode only available with 3D animations. Disabling VR.')
@@ -2241,6 +2139,7 @@ def parse_key_frames(string, prompt_parser=None):
     if frames == {} and len(string) != 0:
         raise RuntimeError('Key Frame string not correctly formatted')
     return frames
+
 
 def get_inbetweens(key_frames, integer=False):
     """Given a dict with frame numbers as keys and a parameter value as values,
@@ -2306,6 +2205,7 @@ def get_inbetweens(key_frames, integer=False):
         return key_frame_series.astype(int)
     return key_frame_series
 
+
 def split_prompts(prompts):
     prompt_series = pd.Series([np.nan for a in range(max_frames)])
     for i, prompt in prompts.items():
@@ -2313,6 +2213,7 @@ def split_prompts(prompts):
     # prompt_series = prompt_series.astype(str)
     prompt_series = prompt_series.ffill().bfill()
     return prompt_series
+
 
 if key_frames:
     try:
@@ -2454,16 +2355,12 @@ if animation_mode == 'Video Input':
         sys.path.append(f'{PROJECT_DIR}/RAFT')
 
     if (not (os.path.exists(f'{root_path}/RAFT/models'))) or force_download:
-        createPath(f'{root_path}/RAFT')
+        create_path(f'{root_path}/RAFT')
         os.chdir(f'{root_path}/RAFT')
         sub_p_res = subprocess.run(['bash', f'{PROJECT_DIR}/RAFT/download_models.sh'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         print(sub_p_res)
         os.chdir(PROJECT_DIR)
 
-# %%
-# !! {"metadata":{
-# !!   "id": "FlowFns1"
-# !! }}
 #@title Define optical flow functions for Video input animation mode only
 if animation_mode == 'Video Input':
     in_path = videoFramesFolder
@@ -2494,8 +2391,8 @@ if animation_mode == 'Video Input':
     args2.small = False
     args2.mixed_precision = True
 
-
     TAG_CHAR = np.array([202021.25], np.float32)
+
 
     def writeFlow(filename,uv,v=None):
         """
@@ -2520,7 +2417,7 @@ if animation_mode == 'Video Input':
         stacked in depth.
         Original code by Deqing Sun, adapted from Daniel Scharstein.
         """
-        nBands = 2
+        n_bands = 2
 
         if v is None:
             assert(uv.ndim == 3)
@@ -2538,7 +2435,7 @@ if animation_mode == 'Video Input':
         np.array(width).astype(np.int32).tofile(f)
         np.array(height).astype(np.int32).tofile(f)
         # arrange into matrix form
-        tmp = np.zeros((height, width*nBands))
+        tmp = np.zeros((height, width*n_bands))
         tmp[:,np.arange(width)*2] = u
         tmp[:,np.arange(width)*2 + 1] = v
         tmp.astype(np.float32).tofile(f)
@@ -2640,8 +2537,8 @@ if animation_mode == "Video Input":
                 temp_flo = in_path+'/temp_flo'
                 flo_fwd_folder = in_path+'/out_flo_fwd'
 
-                createPath(flo_fwd_folder)
-                createPath(temp_flo)
+                create_path(flo_fwd_folder)
+                create_path(temp_flo)
 
                 # TBD Call out to a consistency checker?
 
@@ -2667,26 +2564,6 @@ if animation_mode == "Video Input":
 # !! {"metadata":{
 # !!   "id": "ExtraSetTop"
 # !! }}
-"""
-### Extra Settings
- Partial Saves, Advanced Settings, Cutn Scheduling
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "ExtraSettings"
-# !! }}
-#@markdown ####**Saving:**
-
-intermediate_saves = 0#@param{type: 'raw'}
-intermediates_in_subfolder = True #@param{type: 'boolean'}
-#@markdown Intermediate steps will save a copy at your specified intervals. You can either format it as a single integer or a list of specific steps
-
-#@markdown A value of `2` will save a copy at 33% and 66%. 0 will save none.
-
-#@markdown A value of `[5, 9, 34, 45]` will save at steps 5, 9, 34, and 45. (Make sure to include the brackets)
-
-
 if type(intermediate_saves) is not list:
     if intermediate_saves:
         steps_per_checkpoint = math.floor((steps - skip_steps - 1) // (intermediate_saves+1))
@@ -2699,88 +2576,8 @@ else:
 
 if intermediate_saves and intermediates_in_subfolder is True:
     partialFolder = f'{batchFolder}/partials'
-    createPath(partialFolder)
+    create_path(partialFolder)
 
-#@markdown ---
-
-#@markdown ####**Advanced Settings:**
-#@markdown *There are a few extra advanced settings available if you double click this cell.*
-
-#@markdown *Perlin init will replace your init, so uncheck if using one.*
-
-perlin_init = False  #@param{type: 'boolean'}
-perlin_mode = 'mixed' #@param ['mixed', 'color', 'gray']
-set_seed = 'random_seed' #@param{type: 'string'}
-eta = 0.8#@param{type: 'number'}
-clamp_grad = True #@param{type: 'boolean'}
-clamp_max = 0.05 #@param{type: 'number'}
-
-
-### EXTRA ADVANCED SETTINGS:
-randomize_class = True
-clip_denoised = False
-fuzzy_prompt = False
-rand_mag = 0.05
-
-
-#@markdown ---
-
-#@markdown ####**Cutn Scheduling:**
-#@markdown Format: `[40]*400+[20]*600` = 40 cuts for the first 400 /1000 steps, then 20 for the last 600/1000
-
-#@markdown cut_overview and cut_innercut are cumulative for total cutn on any given step. Overview cuts see the entire image and are good for early structure, innercuts are your standard cutn.
-
-cut_overview = "[12]*400+[4]*600" #@param {type: 'string'}
-cut_innercut ="[4]*400+[12]*600"#@param {type: 'string'}
-cut_ic_pow = 1#@param {type: 'number'}
-cut_icgray_p = "[0.2]*400+[0]*600"#@param {type: 'string'}
-
-#@markdown ---
-
-#@markdown ####**Transformation Settings:**
-use_vertical_symmetry = False #@param {type:"boolean"}
-use_horizontal_symmetry = False #@param {type:"boolean"}
-transformation_percent = [0.09] #@param
-
-
-# %%
-# !! {"metadata":{
-# !!   "id": "PromptsTop"
-# !! }}
-"""
-### Prompts
-`animation_mode: None` will only use the first set. `animation_mode: 2D / Video` will run through them per the set frames and hold on the last one.
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "Prompts"
-# !! }}
-text_prompts = {
-    0: ["A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, Trending on artstation.", "yellow color scheme"],
-    100: ["This set of prompts start at frame 100","This prompt has weight five:5"],
-}
-
-image_prompts = {
-    # 0:['ImagePromptsWorkButArentVeryGood.png:2',],
-}
-
-# %%
-# !! {"metadata":{
-# !!   "id": "DiffuseTop"
-# !! }}
-"""
-# 4. Diffuse!
-"""
-
-# %%
-# !! {"metadata":{
-# !!   "id": "DoTheRun"
-# !! }}
-#@title Do the Run!
-#@markdown `n_batches` ignored with animation modes.
-display_rate = 20 #@param{type: 'number'}
-n_batches = 50 #@param{type: 'number'}
 
 if animation_mode == 'Video Input':
     steps = video_init_steps
@@ -2795,22 +2592,17 @@ model_config.update({
 
 batch_size = 1
 
+
 def move_files(start_num, end_num, old_folder, new_folder):
     for i in range(start_num, end_num):
         old_file = old_folder + f'/{batch_name}({batchNum})_{i:04}.png'
         new_file = new_folder + f'/{batch_name}({batchNum})_{i:04}.png'
         os.rename(old_file, new_file)
 
-#@markdown ---
 
-
-resume_run = False #@param{type: 'boolean'}
-run_to_resume = 'latest' #@param{type: 'string'}
-resume_from_frame = 'latest' #@param{type: 'string'}
-retain_overwritten_frames = False #@param{type: 'boolean'}
 if retain_overwritten_frames:
     retainFolder = f'{batchFolder}/retained'
-    createPath(retainFolder)
+    create_path(retainFolder)
 
 
 skip_step_ratio = int(frames_skip_steps.rstrip("%")) / 100
@@ -3022,7 +2814,7 @@ import PIL
 # @title ### **Create video**
 #@markdown Video file will save in the same folder as your images.
 from tqdm.notebook import trange
-skip_video_for_run_all = False #@param {type: 'boolean'}
+skip_video_for_run_all = False  #@param {type: 'boolean'}
 
 if animation_mode == 'Video Input':
     frames = sorted(glob(in_path+'/*.*'));
@@ -3045,17 +2837,8 @@ else:
     from base64 import b64encode
 
     latest_run = batchNum
-
     folder = batch_name #@param
     run = latest_run #@param
-    final_frame = 'final_frame'
-
-
-    init_frame = 1#@param {type:"number"} This is the frame where the video will start
-    last_frame = final_frame#@param {type:"number"} You can change i to the number of the last frame you want to generate. It will raise an error if that number of frames does not exist.
-    fps = 12#@param {type:"number"}
-    # view_video_in_cell = True #@param {type: 'boolean'}
-
     frames = []
     # tqdm.write('Generating video...')
 
@@ -3072,7 +2855,7 @@ else:
         if last_frame == 'final_frame':
             last_frame = len(glob(batchFolder+f"/flow/{folder}({run})_*.png"))
         flo_out = batchFolder+f"/flow"
-        createPath(flo_out)
+        create_path(flo_out)
         frames_in = sorted(glob(batchFolder+f"/{folder}({run})_*.png"))
         shutil.copy(frames_in[0], flo_out)
         for i in trange(init_frame, min(len(frames_in), last_frame)):
@@ -3094,7 +2877,7 @@ else:
         if last_frame == 'final_frame':
             last_frame = len(glob(batchFolder+f"/blend/{folder}({run})_*.png"))
         blend_out = batchFolder+f"/blend"
-        createPath(blend_out)
+        create_path(blend_out)
         frames_in = glob(batchFolder+f"/{folder}({run})_*.png")
         shutil.copy(frames_in[0], blend_out)
         for i in trange(1, len(frames_in)):
@@ -3191,11 +2974,3 @@ else:
 # !!     "version": "3.6.1"
 # !!   }
 # !! }}
-
-
-def play_sound(freq, len):
-    try:
-        import winsound
-        winsound.Beep(freq, len)
-    except:
-        pass
