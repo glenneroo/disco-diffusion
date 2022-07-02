@@ -1,33 +1,6 @@
 import subprocess, pathlib, shutil, sys, os, ipykernel
 from importlib import util as importlibutil
-
-
-def module_exists(module_name):
-    return importlibutil.find_spec(module_name)
-
-
-def gitclone(url, targetdir=None):
-    if targetdir:
-        res = subprocess.run(['git', 'clone', url, targetdir], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    else:
-        res = subprocess.run(['git', 'clone', url], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
-
-
-def pipi(modulestr):
-    res = subprocess.run(['pip', 'install', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
-
-
-def pipie(modulestr):
-    res = subprocess.run(['git', 'install', '-e', modulestr], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
-
-
-def wget(url, outputdir):
-    res = subprocess.run(['wget', url, '-P', f'{outputdir}'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    print(res)
-
+from disco_utils import Utils
 
 
 """
@@ -227,18 +200,22 @@ Setting | Description | Default
 `clip_models` | Models of CLIP to load. Typically the more, the better but they all come at a hefty VRAM cost. | ViT-B/32, ViT-B/16, RN50x4
 """
 
-"""
------- set default values here which will be overwritten by values in settings.json ------
-"""
+""" set default values here which will be overwritten by values in settings.json """
 skip_for_run_all = True
 cuda_device = 0  # if multiple GPUs, specify which one to use
 simple_nvidia_smi_display = False
 useCPU = False
 
+""" notification sound settings """
+beep_frame_freq = 250  # when a frame finishes rendering, beep at this frequency
+beep_frame_len = 250  # when a frame finishes rendering, beep for this long
+beep_error_freq = 500  # when an error occurs, beep at this frequency
+beep_error_len = 750  # when an error occurs, beep for this long
+
 """ CLIP Settings
-# The rough order of speed/mem usage is (smallest/fastest to largest/slowest):
-# For RN50x64 & ViTL14 you may need to use fewer cuts, depending on your VRAM.
-# The following defaults will work on an 8GB card such as 2080S or 3060 Ti with resolution 1024x768"""
+The rough order of speed/mem usage is (smallest/fastest to largest/slowest):
+For RN50x64 & ViTL14 you may need to use fewer cuts, depending on your VRAM.
+The following defaults will work on an 8GB card such as 2080S or 3060 Ti with resolution 1024x768"""
 use_checkpoint = True
 ViTB32 = True
 RN50 = True
@@ -573,43 +550,44 @@ model_path = f'{root_path}/models'
 multipip_res = subprocess.run(['pip', 'install', 'lpips', 'datetime', 'timm', 'ftfy', 'einops', 'pytorch-lightning', 'omegaconf'], stdout=subprocess.PIPE).stdout.decode('utf-8')
 print(multipip_res)
 
+
 try:
     from CLIP import clip
 except:
     if not os.path.exists("CLIP"):
-        gitclone("https://github.com/openai/CLIP")
+        Utils.gitclone("https://github.com/openai/CLIP")
     sys.path.append(f'{PROJECT_DIR}/CLIP')
 
 try:
     from guided_diffusion.script_util import create_model_and_diffusion
 except:
     if not os.path.exists("guided-diffusion"):
-        gitclone("https://github.com/kostarion/guided-diffusion")
+        Utils.gitclone("https://github.com/kostarion/guided-diffusion")
     sys.path.append(f'{PROJECT_DIR}/guided-diffusion')
 
 try:
     from resize_right import resize
 except:
     if not os.path.exists("ResizeRight"):
-        gitclone("https://github.com/assafshocher/ResizeRight.git")
+        Utils.gitclone("https://github.com/assafshocher/ResizeRight.git")
     sys.path.append(f'{PROJECT_DIR}/ResizeRight')
 
 try:
     import py3d_tools
 except:
     if not os.path.exists('pytorch3d-lite'):
-        gitclone("https://github.com/MSFTserver/pytorch3d-lite.git")
+        Utils.gitclone("https://github.com/MSFTserver/pytorch3d-lite.git")
     sys.path.append(f'{PROJECT_DIR}/pytorch3d-lite')
 
 try:
     from midas.dpt_depth import DPTDepthModel
 except:
     if not os.path.exists('MiDaS'):
-        gitclone("https://github.com/isl-org/MiDaS.git")
+        Utils.gitclone("https://github.com/isl-org/MiDaS.git")
     if not os.path.exists('MiDaS/midas_utils.py'):
         shutil.move('MiDaS/utils.py', 'MiDaS/midas_utils.py')
     if not os.path.exists(f'{model_path}/dpt_large-midas-2f21e586.pt'):
-        wget("https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", model_path)
+        Utils.wget("https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", model_path)
     sys.path.append(f'{PROJECT_DIR}/MiDaS')
 
 try:
@@ -617,7 +595,7 @@ try:
     import disco_xform_utils as dxf
 except:
     if not os.path.exists("disco-diffusion"):
-        gitclone("https://github.com/alembics/disco-diffusion.git")
+        Utils.gitclone("https://github.com/alembics/disco-diffusion.git")
     if not os.path.exists('disco_xform_utils.py'):
         shutil.move('disco-diffusion/disco_xform_utils.py', 'disco_xform_utils.py')
     sys.path.append(PROJECT_DIR)
@@ -667,7 +645,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # AdaBins stuff
 if not os.path.exists(f'{PROJECT_DIR}/pretrained/AdaBins_nyu.pt'):
     create_path(f'{PROJECT_DIR}/pretrained')
-    wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", f'{PROJECT_DIR}/pretrained')
+    Utils.wget("https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", f'{PROJECT_DIR}/pretrained')
 
 if USE_ADABINS:
     MAX_ADABINS_AREA = 500000
@@ -1884,7 +1862,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                 model_256_downloaded = True
             else:
                 print("256 Model SHA doesn't match, redownloading...")
-                wget(model_256_link, model_path)
+                Utils.wget(model_256_link, model_path)
                 if os.path.exists(model_256_path):
                     model_256_downloaded = True
                 else:
@@ -1893,7 +1871,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
         elif os.path.exists(model_256_path) and not check_model_SHA or model_256_downloaded == True:
             print('256 Model already downloaded, check check_model_SHA if the file is corrupt')
         else:
-            wget(model_256_link, model_path)
+            Utils.wget(model_256_link, model_path)
             if os.path.exists(model_256_path):
                 model_256_downloaded = True
             else:
@@ -1914,7 +1892,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                     download_models(diffusion_model,use_secondary_model,True)
             else:
                 print("512 Model SHA doesn't match, redownloading...")
-                wget(model_512_link, model_path)
+                Utils.wget(model_512_link, model_path)
                 if os.path.exists(model_512_path):
                     model_512_downloaded = True
                 else:
@@ -1923,7 +1901,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
         elif os.path.exists(model_512_path) and not check_model_SHA or model_512_downloaded:
             print('512 Model already downloaded, check check_model_SHA if the file is corrupt')
         else:
-            wget(model_512_link, model_path)
+            Utils.wget(model_512_link, model_path)
             model_512_downloaded = True
     # Download the secondary diffusion model v2
     if use_secondary_model:
@@ -1937,7 +1915,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
                 model_secondary_downloaded = True
             else:
                 print("Secondary Model SHA doesn't match, redownloading...")
-                wget(model_secondary_link, model_path)
+                Utils.wget(model_secondary_link, model_path)
                 if os.path.exists(model_secondary_path):
                     model_secondary_downloaded = True
                 else:
@@ -1946,7 +1924,7 @@ def download_models(diffusion_model,use_secondary_model,fallback=False):
         elif os.path.exists(model_secondary_path) and not check_model_SHA or model_secondary_downloaded:
             print('Secondary Model already downloaded, check check_model_SHA if the file is corrupt')
         else:
-            wget(model_secondary_link, model_path)
+            Utils.wget(model_secondary_link, model_path)
             if os.path.exists(model_secondary_path):
                 model_secondary_downloaded = True
             else:
@@ -2351,7 +2329,7 @@ if animation_mode == 'Video Input':
         from raft import RAFT
     except:
         if not os.path.exists(os.path.join(PROJECT_DIR, 'RAFT')):
-            gitclone('https://github.com/princeton-vl/RAFT', os.path.join(PROJECT_DIR, 'RAFT'))
+            Utils.gitclone('https://github.com/princeton-vl/RAFT', os.path.join(PROJECT_DIR, 'RAFT'))
         sys.path.append(f'{PROJECT_DIR}/RAFT')
 
     if (not (os.path.exists(f'{root_path}/RAFT/models'))) or force_download:
