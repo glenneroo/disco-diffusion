@@ -3,13 +3,17 @@ import py3d_tools as p3d
 import midas_utils
 from PIL import Image
 import numpy as np
-import sys, math
+import sys, math, os
+
+# just in case, may resolve adabins import issues
+PROJECT_DIR = os.path.abspath(os.getcwd())
+sys.path.append(f'{PROJECT_DIR}/AdaBins')
 
 try:
-    from adabins.infer import InferenceHelper
+    from infer import InferenceHelper
 except:
     print("disco_xform_utils.py failed to import InferenceHelper. Please ensure that AdaBins directory is in the path (i.e. via sys.path.append('./AdaBins') or other means).")
-    sys.exit()
+    # sys.exit()
 
 MAX_ADABINS_AREA = 500000
 MIN_ADABINS_AREA = 448*448
@@ -120,6 +124,7 @@ def transform_image_3d(img_filepath, midas_model, midas_transform, device, rot_m
     torch.cuda.empty_cache()
 
     return img_pil
+
 
 def get_spherical_projection(H, W, center, magnitude,device):  
     xx, yy = torch.linspace(-1, 1, W,dtype=torch.float32,device=device), torch.linspace(-1, 1, H,dtype=torch.float32,device=device)  
