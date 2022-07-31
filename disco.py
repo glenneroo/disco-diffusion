@@ -1956,7 +1956,7 @@ intermediates_in_subfolder = True #@param{type: 'boolean'}
 #@markdown ####**Advanced Settings:**
 #@markdown *There are a few extra advanced settings available if you double click this cell.*
 #@markdown *Perlin init will replace your init, so uncheck if using one.*
-perlin_init = True  #@param{type: 'boolean'}
+perlin_init = False  #@param{type: 'boolean'}
 perlin_mode = 'mixed' #@param ['mixed', 'color', 'gray']
 set_seed = 'random_seed' #@param{type: 'string'} - default: random_seed
 eta = 0.8#@param{type: 'number'}
